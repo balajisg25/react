@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   useReactTable,
@@ -22,7 +21,6 @@ const DynamicTable = () => {
   const [filtering, setFiltering] = useState([]);
 
   useEffect(() => {
-    // Fetch data from an API
     axios.get('https://jsonplaceholder.typicode.com/users')
       .then(response => {
         const fetchedData = response.data;
@@ -34,7 +32,6 @@ const DynamicTable = () => {
           accessorFn: row => row[key],
         }));
 
-        // Initialize column visibility with all columns visible
         setColumnVisibility(columnDefs.reduce((acc, column) => {
           acc[column.id] = true;
           return acc;
@@ -43,7 +40,6 @@ const DynamicTable = () => {
   }, []);
 
   const columns = useMemo(() => {
-    // Define columns using visibility state
     return Object.keys(columnVisibility).map((key, index) => ({
       id: key || `column_${index}`, // Ensure unique id
       header: key || `Column ${index}`, // Ensure header is not empty
@@ -124,7 +120,7 @@ const DynamicTable = () => {
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map(column => (
                   <th key={column.id} style={{ border: '1px solid black', padding: '8px' }}>
-                    {flexRender(column.columnDef.header, column.getContext())}
+                    {column.columnDef?.header ? flexRender(column.columnDef.header, column.getContext()) : 'No Header'}
                   </th>
                 ))}
               </tr>
@@ -135,7 +131,7 @@ const DynamicTable = () => {
               <tr key={row.id}>
                 {row.getVisibleCells().map(cell => (
                   <td key={cell.id} style={{ border: '1px solid black', padding: '8px' }}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    {cell.column.columnDef?.cell ? flexRender(cell.column.columnDef.cell, cell.getContext()) : 'No Data'}
                   </td>
                 ))}
               </tr>
