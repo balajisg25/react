@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTable, useSortBy, usePagination, useFilters, useColumnOrder, useGlobalFilter } from '@tanstack/react-table';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  flexRender,
+} from '@tanstack/react-table';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
@@ -9,7 +16,6 @@ import { FaFileCsv, FaFileExcel, FaFileAlt, FaDownload } from 'react-icons/fa';
 const DynamicTable = () => {
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
-  const [hiddenColumns, setHiddenColumns] = useState([]);
 
   useEffect(() => {
     // Fetch data from an API
@@ -18,47 +24,20 @@ const DynamicTable = () => {
         setData(response.data);
         setColumns(Object.keys(response.data[0]).map(key => ({
           Header: key,
-          accessor: key,
-          show: true,
+          accessorKey: key,
         })));
       });
   }, []);
 
-  const tableInstance = useTable({
-    columns,
+  const table = useReactTable({
     data,
-    initialState: {
-      hiddenColumns,
-    },
-    state: { hiddenColumns },
-    useSortBy,
-    usePagination,
-    useFilters,
-    useColumnOrder,
-    useGlobalFilter,
-    manualPagination: true,
-    pageCount: Math.ceil(data.length / 10), // example page count
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 10 } },
   });
-
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    page,
-    prepareRow,
-    setColumnOrder,
-    setGlobalFilter,
-    state: { pageIndex, pageSize, globalFilter },
-    canPreviousPage,
-    canNextPage,
-    pageOptions,
-    gotoPage,
-    nextPage,
-    previousPage,
-    setPageSize,
-    allColumns,
-    getToggleHideAllColumnsProps,
-  } = tableInstance;
 
   const exportToCSV = () => {
     const parser = new Parser();
@@ -78,16 +57,6 @@ const DynamicTable = () => {
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
     saveAs(blob, 'data.json');
-  };
-
-  const toggleHideColumn = columnId => {
-    setHiddenColumns(old => {
-      if (old.includes(columnId)) {
-        return old.filter(id => id !== columnId);
-      } else {
-        return [...old, columnId];
-      }
-    });
   };
 
   return (
@@ -119,62 +88,53 @@ const DynamicTable = () => {
         </div>
       </div>
       <div style={{ overflowX: 'auto' }}>
-        <table {...getTableProps()} style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            {headerGroups.map(headerGroup => (
-              <tr {...headerGroup.getHeaderGroupProps()}>
+            {table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id}>
                 {headerGroup.headers.map(column => (
-                  <th {...column.getHeaderProps(column.getSortByToggleProps())} style={{ border: '1px solid black', padding: '8px' }}>
-                    {column.render('Header')}
-                    <span>
-                      {column.isSorted ? (column.isSortedDesc ? ' 🔽' : ' 🔼') : ''}
-                    </span>
-                    <div>{column.canFilter ? column.render('Filter') : null}</div>
+                  <th key={column.id} style={{ border: '1px solid black', padding: '8px' }}>
+                    {flexRender(column.columnDef.Header, column.getContext())}
                   </th>
                 ))}
               </tr>
             ))}
           </thead>
-          <tbody {...getTableBodyProps()}>
-            {page.map(row => {
-              prepareRow(row);
-              return (
-                <tr {...row.getRowProps()}>
-                  {row.cells.map(cell => (
-                    <td {...cell.getCellProps()} style={{ border: '1px solid black', padding: '8px' }}>
-                      {cell.render('Cell')}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
+          <tbody>
+            {table.getRowModel().rows.map(row => (
+              <tr key={row.id}>
+                {row.getVisibleCells().map(cell => (
+                  <td key={cell.id} style={{ border: '1px solid black', padding: '8px' }}>
+                    {flexRender(cell.column.columnDef.Cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
       <div>
-        <button onClick={() => gotoPage(0)} disabled={!canPreviousPage}>
+        <button onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
           {'<<'}
         </button>
-        <button onClick={() => previousPage()} disabled={!canPreviousPage}>
+        <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
           {'<'}
         </button>
-        <button onClick={() => nextPage()} disabled={!canNextPage}>
+        <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
           {'>'}
         </button>
-        <button onClick={() => gotoPage(pageOptions.length - 1)} disabled={!canNextPage}>
+        <button onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
           {'>>'}
         </button>
         <span>
           Page{' '}
           <strong>
-            {pageIndex + 1} of {pageOptions.length}
+            {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
           </strong>
         </span>
         <select
-          value={pageSize}
-          onChange={e => {
-            setPageSize(Number(e.target.value));
-          }}
+          value={table.getState().pagination.pageSize}
+          onChange={e => table.setPageSize(Number(e.target.value))}
         >
           {[10, 20, 30, 40, 50].map(pageSize => (
             <option key={pageSize} value={pageSize}>
@@ -184,14 +144,17 @@ const DynamicTable = () => {
         </select>
       </div>
       <div>
-        <div {...getToggleHideAllColumnsProps()}>
-          <input type="checkbox" />
+        <div>
+          <input
+            type="checkbox"
+            {...table.getToggleAllColumnsVisibilityProps()}
+          />
           Toggle All
         </div>
-        {allColumns.map(column => (
+        {table.getAllLeafColumns().map(column => (
           <div key={column.id}>
             <label>
-              <input type="checkbox" {...column.getToggleHiddenProps()} />{' '}
+              <input type="checkbox" {...column.getToggleVisibilityProps()} />{' '}
               {column.id}
             </label>
           </div>
