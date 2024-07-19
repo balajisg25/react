@@ -15,30 +15,58 @@ import { FaFileCsv, FaFileExcel, FaFileAlt, FaDownload } from 'react-icons/fa';
 
 const DynamicTable = () => {
   const [data, setData] = useState([]);
-  const [columns, setColumns] = useState([]);
+  const [columnVisibility, setColumnVisibility] = useState({});
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [sorting, setSorting] = useState([]);
+  const [filtering, setFiltering] = useState([]);
 
   useEffect(() => {
     // Fetch data from an API
     axios.get('https://jsonplaceholder.typicode.com/users')
       .then(response => {
-        setData(response.data);
-        setColumns(Object.keys(response.data[0]).map(key => ({
+        const fetchedData = response.data;
+        setData(fetchedData);
+
+        const columnDefs = Object.keys(fetchedData[0]).map(key => ({
+          id: key,
           header: key,
-          accessorKey: key,
-        })));
+          accessorFn: row => row[key],
+        }));
+
+        // Initialize column visibility with all columns visible
+        setColumnVisibility(columnDefs.reduce((acc, column) => {
+          acc[column.id] = true;
+          return acc;
+        }, {}));
       });
   }, []);
+
+  const columns = React.useMemo(() => {
+    // Define columns using visibility state
+    return Object.keys(columnVisibility).map(key => ({
+      id: key,
+      header: key,
+      accessorFn: row => row[key],
+    }));
+  }, [columnVisibility]);
 
   const table = useReactTable({
     data,
     columns,
+    state: {
+      columnVisibility,
+      pagination,
+      sorting,
+      filtering,
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    state: {
-      pagination: { pageSize: 10 },
-    },
+    onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: setPagination,
+    onSortingChange: setSorting,
+    onFilteringChange: setFiltering,
   });
 
   const exportToCSV = () => {
@@ -148,15 +176,31 @@ const DynamicTable = () => {
         <div>
           <input
             type="checkbox"
-            {...table.getToggleAllColumnsVisibilityProps()}
+            checked={Object.values(columnVisibility).every(v => v)}
+            onChange={() => {
+              const newVisibility = {};
+              Object.keys(columnVisibility).forEach(key => {
+                newVisibility[key] = !Object.values(columnVisibility).every(v => v);
+              });
+              setColumnVisibility(newVisibility);
+            }}
           />
           Toggle All
         </div>
-        {table.getAllLeafColumns().map(column => (
-          <div key={column.id}>
+        {Object.keys(columnVisibility).map(columnId => (
+          <div key={columnId}>
             <label>
-              <input type="checkbox" {...column.getToggleVisibilityProps()} />{' '}
-              {column.id}
+              <input
+                type="checkbox"
+                checked={columnVisibility[columnId]}
+                onChange={() => {
+                  setColumnVisibility(prev => ({
+                    ...prev,
+                    [columnId]: !prev[columnId],
+                  }));
+                }}
+              />{' '}
+              {columnId}
             </label>
           </div>
         ))}
