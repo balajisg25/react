@@ -1,0 +1,184 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useTable, useSortBy, usePagination, useFilters } from '@tanstack/react-table';
+import axios from 'axios';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
+import { Parser } from 'json2csv';
+import { FaFileCsv, FaFileExcel, FaFileAlt, FaDownload } from 'react-icons/fa';
+
+const DynamicTable = () => {
+  const [data, setData] = useState([]);
+  const [columns, setColumns] = useState([]);
+  const [hiddenColumns, setHiddenColumns] = useState([]);
+
+  useEffect(() => {
+    // Fetch data from an API
+    axios.get('https://jsonplaceholder.typicode.com/users')
+      .then(response => {
+        setData(response.data);
+        setColumns(Object.keys(response.data[0]).map(key => ({
+          Header: key,
+          accessor: key,
+        })));
+      });
+  }, []);
+
+  const tableInstance = useTable({
+    columns,
+    data,
+    initialState: {
+      hiddenColumns,
+    },
+    state: { hiddenColumns },
+    useSortBy,
+    usePagination,
+    useFilters,
+    manualPagination: true,
+    pageCount: Math.ceil(data.length / 10), // example page count
+  });
+
+  const {
+    getTableProps,
+    getTableBodyProps,
+    headerGroups,
+    page,
+    prepareRow,
+    setHiddenColumns,
+    state: { pageIndex, pageSize },
+    canPreviousPage,
+    canNextPage,
+    pageOptions,
+    gotoPage,
+    nextPage,
+    previousPage,
+    setPageSize,
+  } = tableInstance;
+
+  const exportToCSV = () => {
+    const parser = new Parser();
+    const csv = parser.parse(data);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, 'data.csv');
+  };
+
+  const exportToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    XLSX.writeFile(wb, 'data.xlsx');
+  };
+
+  const exportToJson = () => {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+    saveAs(blob, 'data.json');
+  };
+
+  const toggleHideColumn = columnId => {
+    setHiddenColumns(old => {
+      if (old.includes(columnId)) {
+        return old.filter(id => id !== columnId);
+      } else {
+        return [...old, columnId];
+      }
+    });
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: '10px' }}>
+        <div
+          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', marginRight: '10px' }}
+          onClick={exportToCSV}
+          title="Export to CSV"
+        >
+          <FaFileCsv size={30} />
+          <FaDownload size={15} style={{ marginLeft: '5px' }} />
+        </div>
+        <div
+          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', marginRight: '10px' }}
+          onClick={exportToExcel}
+          title="Export to Excel"
+        >
+          <FaFileExcel size={30} />
+          <FaDownload size={15} style={{ marginLeft: '5px' }} />
+        </div>
+        <div
+          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}
+          onClick={exportToJson}
+          title="Export to JSON"
+        >
+          <FaFileAlt size={30} />
+          <FaDownload size={15} style={{ marginLeft: '5px' }} />
+        </div>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table {...getTableProps()} style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            {headerGroups.map(headerGroup => (
+              <tr {...headerGroup.getHeaderGroupProps()}>
+                {headerGroup.headers.map(column => (
+                  <th {...column.getHeaderProps(column.getSortByToggleProps())} style={{ border: '1px solid black', padding: '8px' }}>
+                    {column.render('Header')}
+                    <span>
+                      {column.isSorted ? (column.isSortedDesc ? ' 🔽' : ' 🔼') : ''}
+                    </span>
+                    <div>{column.canFilter ? column.render('Filter') : null}</div>
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody {...getTableBodyProps()}>
+            {page.map(row => {
+              prepareRow(row);
+              return (
+                <tr {...row.getRowProps()}>
+                  {row.cells.map(cell => (
+                    <td {...cell.getCellProps()} style={{ border: '1px solid black', padding: '8px' }}>
+                      {cell.render('Cell')}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <button onClick={() => gotoPage(0)} disabled={!canPreviousPage}>
+          {'<<'}
+        </button>
+        <button onClick={() => previousPage()} disabled={!canPreviousPage}>
+          {'<'}
+        </button>
+        <button onClick={() => nextPage()} disabled={!canNextPage}>
+          {'>'}
+        </button>
+        <button onClick={() => gotoPage(pageOptions.length - 1)} disabled={!canNextPage}>
+          {'>>'}
+        </button>
+        <span>
+          Page{' '}
+          <strong>
+            {pageIndex + 1} of {pageOptions.length}
+          </strong>
+        </span>
+        <select
+          value={pageSize}
+          onChange={e => {
+            setPageSize(Number(e.target.value));
+          }}
+        >
+          {[10, 20, 30, 40, 50].map(pageSize => (
+            <option key={pageSize} value={pageSize}>
+              Show {pageSize}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+};
+
+export default DynamicTable;
