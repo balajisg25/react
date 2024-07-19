@@ -1,0 +1,90 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import axios from 'axios';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { FaFileCsv, FaFileExcel, FaFileAlt, FaDownload } from 'react-icons/fa';
+
+const DynamicTable = () => {
+  const [rowData, setRowData] = useState([]);
+  const [columnDefs, setColumnDefs] = useState([]);
+  const gridRef = useRef(null);
+
+  useEffect(() => {
+    // Fetch data from an API
+    axios.get('https://jsonplaceholder.typicode.com/users')
+      .then(response => {
+        setRowData(response.data);
+        setColumnDefs(Object.keys(response.data[0]).map(key => ({
+          headerName: key,
+          field: key,
+          filter: 'agTextColumnFilter',
+          sortable: true,
+          hide: false,
+        })));
+      });
+  }, []);
+
+  const onExportClick = (format) => {
+    if (format === 'csv') {
+      gridRef.current.api.exportDataAsCsv();
+    } else if (format === 'excel') {
+      gridRef.current.api.exportDataAsExcel();
+    } else if (format === 'json') {
+      const json = JSON.stringify(rowData, null, 2);
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+      saveAs(blob, 'data.json');
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: '10px' }}>
+        <div 
+          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', marginRight: '10px' }} 
+          onClick={() => onExportClick('csv')}
+          title="Export to CSV"
+        >
+          <FaFileCsv size={30} />
+          <FaDownload size={15} style={{ marginLeft: '5px' }} />
+        </div>
+        <div 
+          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', marginRight: '10px' }} 
+          onClick={() => onExportClick('excel')}
+          title="Export to Excel"
+        >
+          <FaFileExcel size={30} />
+          <FaDownload size={15} style={{ marginLeft: '5px' }} />
+        </div>
+        <div 
+          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }} 
+          onClick={() => onExportClick('json')}
+          title="Export to JSON"
+        >
+          <FaFileAlt size={30} />
+          <FaDownload size={15} style={{ marginLeft: '5px' }} />
+        </div>
+      </div>
+      <div className="ag-theme-alpine" style={{ height: 600, width: '100%' }}>
+        <AgGridReact
+          ref={gridRef}
+          rowData={rowData}
+          columnDefs={columnDefs}
+          defaultColDef={{
+            filter: true,
+            sortable: true,
+            resizable: true,
+            flex: 1,
+          }}
+          pagination={true}
+          paginationPageSize={10}
+          suppressExcelExport={false}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default DynamicTable;
