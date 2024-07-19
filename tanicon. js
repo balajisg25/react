@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -29,7 +29,7 @@ const DynamicTable = () => {
 
         const columnDefs = Object.keys(fetchedData[0]).map(key => ({
           id: key,
-          header: key,
+          header: () => key, // Updated to use a function for header
           accessorFn: row => row[key],
         }));
 
@@ -41,11 +41,11 @@ const DynamicTable = () => {
       });
   }, []);
 
-  const columns = React.useMemo(() => {
+  const columns = useMemo(() => {
     // Define columns using visibility state
     return Object.keys(columnVisibility).map(key => ({
       id: key,
-      header: key,
+      header: () => key,
       accessorFn: row => row[key],
     }));
   }, [columnVisibility]);
