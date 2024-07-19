@@ -27,9 +27,9 @@ const DynamicTable = () => {
         const fetchedData = response.data;
         setData(fetchedData);
 
-        const columnDefs = Object.keys(fetchedData[0]).map(key => ({
-          id: key,
-          header: () => key, // Updated to use a function for header
+        const columnDefs = Object.keys(fetchedData[0]).map((key, index) => ({
+          id: key || `column_${index}`, // Use column index as fallback id
+          header: key || `Column ${index}`, // Use column index as fallback header
           accessorFn: row => row[key],
         }));
 
@@ -43,9 +43,9 @@ const DynamicTable = () => {
 
   const columns = useMemo(() => {
     // Define columns using visibility state
-    return Object.keys(columnVisibility).map(key => ({
-      id: key,
-      header: () => key,
+    return Object.keys(columnVisibility).map((key, index) => ({
+      id: key || `column_${index}`, // Ensure unique id
+      header: key || `Column ${index}`, // Ensure header is not empty
       accessorFn: row => row[key],
     }));
   }, [columnVisibility]);
