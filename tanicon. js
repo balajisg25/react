@@ -10,7 +10,7 @@ import {
 import axios from 'axios';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
-import { Parser } from 'json2csv';
+import Papa from 'papaparse';
 import { FaFileCsv, FaFileExcel, FaFileAlt, FaDownload } from 'react-icons/fa';
 
 const DynamicTable = () => {
@@ -40,8 +40,7 @@ const DynamicTable = () => {
   });
 
   const exportToCSV = () => {
-    const parser = new Parser();
-    const csv = parser.parse(data);
+    const csv = Papa.unparse(data);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     saveAs(blob, 'data.csv');
   };
@@ -88,24 +87,24 @@ const DynamicTable = () => {
         </div>
       </div>
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table {...table.getTableProps()} style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
+              <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
                 {headerGroup.headers.map(column => (
-                  <th key={column.id} style={{ border: '1px solid black', padding: '8px' }}>
-                    {flexRender(column.columnDef.Header, column.getContext())}
+                  <th key={column.id} {...column.getHeaderProps()} style={{ border: '1px solid black', padding: '8px' }}>
+                    {flexRender(column.columnDef.header, column.getContext())}
                   </th>
                 ))}
               </tr>
             ))}
           </thead>
-          <tbody>
+          <tbody {...table.getTableBodyProps()}>
             {table.getRowModel().rows.map(row => (
-              <tr key={row.id}>
+              <tr key={row.id} {...row.getRowProps()}>
                 {row.getVisibleCells().map(cell => (
-                  <td key={cell.id} style={{ border: '1px solid black', padding: '8px' }}>
-                    {flexRender(cell.column.columnDef.Cell, cell.getContext())}
+                  <td key={cell.id} {...cell.getCellProps()} style={{ border: '1px solid black', padding: '8px' }}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
               </tr>
