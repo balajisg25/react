@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -23,7 +23,7 @@ const DynamicTable = () => {
       .then(response => {
         setData(response.data);
         setColumns(Object.keys(response.data[0]).map(key => ({
-          Header: key,
+          header: key,
           accessorKey: key,
         })));
       });
@@ -36,7 +36,9 @@ const DynamicTable = () => {
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 10 } },
+    state: {
+      pagination: { pageSize: 10 },
+    },
   });
 
   const exportToCSV = () => {
@@ -87,23 +89,23 @@ const DynamicTable = () => {
         </div>
       </div>
       <div style={{ overflowX: 'auto' }}>
-        <table {...table.getTableProps()} style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
+              <tr key={headerGroup.id}>
                 {headerGroup.headers.map(column => (
-                  <th key={column.id} {...column.getHeaderProps()} style={{ border: '1px solid black', padding: '8px' }}>
+                  <th key={column.id} style={{ border: '1px solid black', padding: '8px' }}>
                     {flexRender(column.columnDef.header, column.getContext())}
                   </th>
                 ))}
               </tr>
             ))}
           </thead>
-          <tbody {...table.getTableBodyProps()}>
+          <tbody>
             {table.getRowModel().rows.map(row => (
-              <tr key={row.id} {...row.getRowProps()}>
+              <tr key={row.id}>
                 {row.getVisibleCells().map(cell => (
-                  <td key={cell.id} {...cell.getCellProps()} style={{ border: '1px solid black', padding: '8px' }}>
+                  <td key={cell.id} style={{ border: '1px solid black', padding: '8px' }}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
