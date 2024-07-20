@@ -3,13 +3,18 @@ import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import axios from 'axios';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaFileCsv, FaFileExcel, FaFileAlt, FaDownload } from 'react-icons/fa';
+import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 const DynamicTable = () => {
   const [rowData, setRowData] = useState([]);
   const [columnDefs, setColumnDefs] = useState([]);
+  const [paginationPageSize, setPaginationPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [gridApi, setGridApi] = useState(null);
-  const [columnsVisibility, setColumnsVisibility] = useState({});
 
   useEffect(() => {
     axios.get('https://jsonplaceholder.typicode.com/users')
@@ -20,59 +25,147 @@ const DynamicTable = () => {
         const columns = Object.keys(fetchedData[0] || {}).map((key, index) => ({
           headerName: key || `Column ${index}`,
           field: key || `column_${index}`, // Field must be unique
+          filter: true, // Enable filtering for this column
         }));
 
         setColumnDefs(columns);
-        // Initialize column visibility state
-        const initialVisibility = columns.reduce((acc, col) => {
-          acc[col.field] = true; // Show all columns by default
-          return acc;
-        }, {});
-        setColumnsVisibility(initialVisibility);
       });
   }, []);
 
   const onGridReady = (params) => {
     setGridApi(params.api);
+    // Optionally, trigger pagination changes on load
+    updatePagination(params.api);
   };
 
-  const toggleColumnVisibility = (field) => {
-    if (!gridApi) return;
+  const updatePagination = (api) => {
+    const totalCount = api.getDisplayedRowCount();
+    const totalPages = Math.ceil(totalCount / paginationPageSize);
+    setTotalPages(totalPages);
+    setCurrentPage(api.paginationGetCurrentPage() + 1); // +1 for 1-based page number
+  };
 
-    const newVisibility = !columnsVisibility[field];
-    gridApi.getColumnState().forEach((colState) => {
-      if (colState.colId === field) {
-        colState.hide = !newVisibility;
-      }
-    });
+  const onPaginationChanged = (event) => {
+    const api = event.api;
+    const totalCount = api.getDisplayedRowCount();
+    const totalPages = Math.ceil(totalCount / paginationPageSize);
+    setTotalPages(totalPages);
+    setCurrentPage(api.paginationGetCurrentPage() + 1);
+  };
 
-    gridApi.setColumnState(gridApi.getColumnState()); // Apply changes
-    setColumnsVisibility(prevState => ({
-      ...prevState,
-      [field]: newVisibility,
-    }));
+  const onFilterChanged = () => {
+    if (gridApi) {
+      updatePagination(gridApi);
+    }
+  };
+
+  const onPageSizeChanged = (event) => {
+    setPaginationPageSize(Number(event.target.value));
+    if (gridApi) {
+      gridApi.paginationSetPageSize(Number(event.target.value));
+      updatePagination(gridApi);
+    }
+  };
+
+  const exportToCSV = () => {
+    const csv = Papa.unparse(rowData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, 'data.csv');
+  };
+
+  const exportToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(rowData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    XLSX.writeFile(wb, 'data.xlsx');
+  };
+
+  const exportToJson = () => {
+    const json = JSON.stringify(rowData, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+    saveAs(blob, 'data.json');
   };
 
   return (
     <div>
       <div style={{ marginBottom: '10px' }}>
-        {columnDefs.map(col => (
-          <button
-            key={col.field}
-            onClick={() => toggleColumnVisibility(col.field)}
-            style={{ marginRight: '10px' }}
-          >
-            {columnsVisibility[col.field] ? <FaEye size={20} /> : <FaEyeSlash size={20} />}
-            {col.headerName}
-          </button>
-        ))}
+        <div
+          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', marginRight: '10px' }}
+          onClick={exportToCSV}
+          title="Export to CSV"
+        >
+          <FaFileCsv size={30} />
+          <FaDownload size={15} style={{ marginLeft: '5px' }} />
+        </div>
+        <div
+          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', marginRight: '10px' }}
+          onClick={exportToExcel}
+          title="Export to Excel"
+        >
+          <FaFileExcel size={30} />
+          <FaDownload size={15} style={{ marginLeft: '5px' }} />
+        </div>
+        <div
+          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}
+          onClick={exportToJson}
+          title="Export to JSON"
+        >
+          <FaFileAlt size={30} />
+          <FaDownload size={15} style={{ marginLeft: '5px' }} />
+        </div>
       </div>
       <div className="ag-theme-alpine" style={{ height: '400px', width: '100%' }}>
         <AgGridReact
           rowData={rowData}
           columnDefs={columnDefs}
+          pagination
+          paginationPageSize={paginationPageSize}
+          onPaginationChanged={onPaginationChanged}
+          onFilterChanged={onFilterChanged}
           onGridReady={onGridReady}
         />
+      </div>
+      <div style={{ marginTop: '10px' }}>
+        <button
+          onClick={() => gridApi && gridApi.paginationGoToFirstPage()}
+          disabled={currentPage === 1}
+        >
+          {'<<'}
+        </button>
+        <button
+          onClick={() => gridApi && gridApi.paginationGoToPreviousPage()}
+          disabled={currentPage === 1}
+        >
+          {'<'}
+        </button>
+        <button
+          onClick={() => gridApi && gridApi.paginationGoToNextPage()}
+          disabled={currentPage === totalPages}
+        >
+          {'>'}
+        </button>
+        <button
+          onClick={() => gridApi && gridApi.paginationGoToLastPage()}
+          disabled={currentPage === totalPages}
+        >
+          {'>>'}
+        </button>
+        <span>
+          Page{' '}
+          <strong>
+            {currentPage} of {totalPages}
+          </strong>
+        </span>
+        <select
+          value={paginationPageSize}
+          onChange={onPageSizeChanged}
+        >
+          {[10, 20, 30, 40, 50].map(pageSize => (
+            <option key={pageSize} value={pageSize}>
+              Show {pageSize}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );
