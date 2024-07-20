@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import axios from 'axios';
-import { FaFileCsv, FaFileExcel, FaFileAlt, FaDownload } from 'react-icons/fa';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { FaFileCsv, FaFileExcel, FaFileAlt, FaDownload } from 'react-icons/fa';
 
 const DynamicTable = () => {
   const [rowData, setRowData] = useState([]);
@@ -34,7 +34,7 @@ const DynamicTable = () => {
 
   const onGridReady = (params) => {
     setGridApi(params.api);
-    // Optionally, trigger pagination changes on load
+    // Update pagination on load
     updatePagination(params.api);
   };
 
@@ -42,27 +42,25 @@ const DynamicTable = () => {
     const totalCount = api.getDisplayedRowCount();
     const totalPages = Math.ceil(totalCount / paginationPageSize);
     setTotalPages(totalPages);
-    setCurrentPage(api.paginationGetCurrentPage() + 1); // +1 for 1-based page number
+    setCurrentPage(api.paginationGetCurrentPage() + 1); // 1-based page number
   };
 
   const onPaginationChanged = (event) => {
     const api = event.api;
-    const totalCount = api.getDisplayedRowCount();
-    const totalPages = Math.ceil(totalCount / paginationPageSize);
-    setTotalPages(totalPages);
-    setCurrentPage(api.paginationGetCurrentPage() + 1);
+    updatePagination(api);
   };
 
-  const onFilterChanged = () => {
+  const onFilterChanged = useCallback(() => {
     if (gridApi) {
       updatePagination(gridApi);
     }
-  };
+  }, [gridApi]);
 
   const onPageSizeChanged = (event) => {
-    setPaginationPageSize(Number(event.target.value));
+    const newPageSize = Number(event.target.value);
+    setPaginationPageSize(newPageSize);
     if (gridApi) {
-      gridApi.paginationSetPageSize(Number(event.target.value));
+      gridApi.paginationSetPageSize(newPageSize);
       updatePagination(gridApi);
     }
   };
@@ -120,9 +118,9 @@ const DynamicTable = () => {
           columnDefs={columnDefs}
           pagination
           paginationPageSize={paginationPageSize}
+          onGridReady={onGridReady}
           onPaginationChanged={onPaginationChanged}
           onFilterChanged={onFilterChanged}
-          onGridReady={onGridReady}
         />
       </div>
       <div style={{ marginTop: '10px' }}>
