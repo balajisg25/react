@@ -6,14 +6,16 @@ import axios from 'axios';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { FaDownload } from 'react-icons/fa';
+import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
+import { Download as DownloadIcon, FileCsv as FileCsvIcon, FileExcel as FileExcelIcon, FileCopy as FileCopyIcon } from '@mui/icons-material';
 
 const DynamicTable = () => {
   const [rowData, setRowData] = useState([]);
   const [columnDefs, setColumnDefs] = useState([]);
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const [gridApi, setGridApi] = useState(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
 
   useEffect(() => {
     axios.get('https://jsonplaceholder.typicode.com/users')
@@ -44,21 +46,33 @@ const DynamicTable = () => {
     }
   };
 
+  const getFilteredData = () => {
+    if (gridApi) {
+      const filteredData = [];
+      gridApi.forEachNodeAfterFilterAndSort(node => filteredData.push(node.data));
+      return filteredData;
+    }
+    return rowData;
+  };
+
   const exportToCSV = () => {
-    const csv = Papa.unparse(rowData);
+    const data = getFilteredData();
+    const csv = Papa.unparse(data);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     saveAs(blob, 'data.csv');
   };
 
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(rowData);
+    const data = getFilteredData();
+    const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Data');
     XLSX.writeFile(wb, 'data.xlsx');
   };
 
   const exportToJson = () => {
-    const json = JSON.stringify(rowData, null, 2);
+    const data = getFilteredData();
+    const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
     saveAs(blob, 'data.json');
   };
@@ -77,38 +91,41 @@ const DynamicTable = () => {
       default:
         break;
     }
-    setDropdownOpen(false);
+    setAnchorEl(null);
   };
 
   return (
     <div>
-      <div style={{ marginBottom: '10px' }}>
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            style={{ display: 'flex', alignItems: 'center' }}
-          >
-            <FaDownload size={30} />
-            Export
-          </button>
-          {dropdownOpen && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              backgroundColor: 'white',
-              border: '1px solid #ccc',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
-              zIndex: 1
-            }}>
-              <button onClick={() => handleExport('csv')}>Export to CSV</button>
-              <button onClick={() => handleExport('excel')}>Export to Excel</button>
-              <button onClick={() => handleExport('json')}>Export to JSON</button>
-            </div>
-          )}
-        </div>
-      </div>
-      <div className="ag-theme-alpine" style={{ height: '400px', width: '100%' }}>
+      <Tooltip title="Export Data">
+        <IconButton
+          aria-controls={open ? 'export-menu' : undefined}
+          aria-haspopup="true"
+          onClick={(event) => setAnchorEl(event.currentTarget)}
+          color="primary"
+        >
+          <DownloadIcon />
+        </IconButton>
+      </Tooltip>
+      <Menu
+        id="export-menu"
+        anchorEl={anchorEl}
+        open={open}
+        onClose={() => setAnchorEl(null)}
+      >
+        <MenuItem onClick={() => handleExport('csv')}>
+          <FileCsvIcon style={{ marginRight: 8 }} />
+          Export to CSV
+        </MenuItem>
+        <MenuItem onClick={() => handleExport('excel')}>
+          <FileExcelIcon style={{ marginRight: 8 }} />
+          Export to Excel
+        </MenuItem>
+        <MenuItem onClick={() => handleExport('json')}>
+          <FileCopyIcon style={{ marginRight: 8 }} />
+          Export to JSON
+        </MenuItem>
+      </Menu>
+      <div className="ag-theme-alpine" style={{ height: 'calc(100vh - 150px)', width: '100%' }}>
         <AgGridReact
           rowData={rowData}
           columnDefs={columnDefs}
@@ -128,6 +145,7 @@ const DynamicTable = () => {
         <select
           value={paginationPageSize}
           onChange={onPageSizeChanged}
+          style={{ marginLeft: '10px' }}
         >
           {[10, 20, 30, 40, 50].map(pageSize => (
             <option key={pageSize} value={pageSize}>
