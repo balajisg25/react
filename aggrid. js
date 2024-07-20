@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
@@ -6,15 +6,14 @@ import axios from 'axios';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { FaFileCsv, FaFileExcel, FaFileAlt, FaDownload } from 'react-icons/fa';
+import { FaDownload } from 'react-icons/fa';
 
 const DynamicTable = () => {
   const [rowData, setRowData] = useState([]);
   const [columnDefs, setColumnDefs] = useState([]);
   const [paginationPageSize, setPaginationPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [gridApi, setGridApi] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     axios.get('https://jsonplaceholder.typicode.com/users')
@@ -34,34 +33,14 @@ const DynamicTable = () => {
 
   const onGridReady = (params) => {
     setGridApi(params.api);
-    // Update pagination on load
-    updatePagination(params.api);
+    params.api.paginationSetPageSize(paginationPageSize);
   };
-
-  const updatePagination = (api) => {
-    const totalCount = api.getDisplayedRowCount();
-    const totalPages = Math.ceil(totalCount / paginationPageSize);
-    setTotalPages(totalPages);
-    setCurrentPage(api.paginationGetCurrentPage() + 1); // 1-based page number
-  };
-
-  const onPaginationChanged = (event) => {
-    const api = event.api;
-    updatePagination(api);
-  };
-
-  const onFilterChanged = useCallback(() => {
-    if (gridApi) {
-      updatePagination(gridApi);
-    }
-  }, [gridApi]);
 
   const onPageSizeChanged = (event) => {
     const newPageSize = Number(event.target.value);
     setPaginationPageSize(newPageSize);
     if (gridApi) {
       gridApi.paginationSetPageSize(newPageSize);
-      updatePagination(gridApi);
     }
   };
 
@@ -84,32 +63,49 @@ const DynamicTable = () => {
     saveAs(blob, 'data.json');
   };
 
+  const handleExport = (format) => {
+    switch (format) {
+      case 'csv':
+        exportToCSV();
+        break;
+      case 'excel':
+        exportToExcel();
+        break;
+      case 'json':
+        exportToJson();
+        break;
+      default:
+        break;
+    }
+    setDropdownOpen(false);
+  };
+
   return (
     <div>
       <div style={{ marginBottom: '10px' }}>
-        <div
-          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', marginRight: '10px' }}
-          onClick={exportToCSV}
-          title="Export to CSV"
-        >
-          <FaFileCsv size={30} />
-          <FaDownload size={15} style={{ marginLeft: '5px' }} />
-        </div>
-        <div
-          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', marginRight: '10px' }}
-          onClick={exportToExcel}
-          title="Export to Excel"
-        >
-          <FaFileExcel size={30} />
-          <FaDownload size={15} style={{ marginLeft: '5px' }} />
-        </div>
-        <div
-          style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}
-          onClick={exportToJson}
-          title="Export to JSON"
-        >
-          <FaFileAlt size={30} />
-          <FaDownload size={15} style={{ marginLeft: '5px' }} />
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            style={{ display: 'flex', alignItems: 'center' }}
+          >
+            <FaDownload size={30} />
+            Export
+          </button>
+          {dropdownOpen && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              backgroundColor: 'white',
+              border: '1px solid #ccc',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+              zIndex: 1
+            }}>
+              <button onClick={() => handleExport('csv')}>Export to CSV</button>
+              <button onClick={() => handleExport('excel')}>Export to Excel</button>
+              <button onClick={() => handleExport('json')}>Export to JSON</button>
+            </div>
+          )}
         </div>
       </div>
       <div className="ag-theme-alpine" style={{ height: '400px', width: '100%' }}>
@@ -119,39 +115,14 @@ const DynamicTable = () => {
           pagination
           paginationPageSize={paginationPageSize}
           onGridReady={onGridReady}
-          onPaginationChanged={onPaginationChanged}
-          onFilterChanged={onFilterChanged}
+          onFilterChanged={() => gridApi && gridApi.paginationGoToFirstPage()} // Reset to first page when filtering
         />
       </div>
       <div style={{ marginTop: '10px' }}>
-        <button
-          onClick={() => gridApi && gridApi.paginationGoToFirstPage()}
-          disabled={currentPage === 1}
-        >
-          {'<<'}
-        </button>
-        <button
-          onClick={() => gridApi && gridApi.paginationGoToPreviousPage()}
-          disabled={currentPage === 1}
-        >
-          {'<'}
-        </button>
-        <button
-          onClick={() => gridApi && gridApi.paginationGoToNextPage()}
-          disabled={currentPage === totalPages}
-        >
-          {'>'}
-        </button>
-        <button
-          onClick={() => gridApi && gridApi.paginationGoToLastPage()}
-          disabled={currentPage === totalPages}
-        >
-          {'>>'}
-        </button>
         <span>
           Page{' '}
           <strong>
-            {currentPage} of {totalPages}
+            {gridApi ? gridApi.paginationGetCurrentPage() + 1 : 1} of {gridApi ? gridApi.paginationGetTotalPages() : 1}
           </strong>
         </span>
         <select
