@@ -133,6 +133,32 @@ const DynamicTable = () => {
     }
   };
 
+  // Apply custom color to filter icon when a filter is active
+  const applyCustomFilterIconColor = () => {
+    if (gridApi) {
+      const allColumns = gridApi.getAllColumns();
+      allColumns.forEach(column => {
+        const filterComponent = gridApi.getFilterInstance(column.getColId());
+        if (filterComponent && filterComponent.isFilterActive()) {
+          const headerElement = gridApi.getHeaderCellElement(column);
+          if (headerElement) {
+            const filterIcon = headerElement.querySelector('.ag-filter-icon');
+            if (filterIcon) {
+              filterIcon.style.backgroundColor = 'yellow'; // Your desired background color
+            }
+          }
+        }
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (gridApi) {
+      applyCustomFilterIconColor();
+      gridApi.addEventListener('filterChanged', applyCustomFilterIconColor); // Apply when filter changes
+    }
+  }, [gridApi]);
+
   return (
     <div>
       <ButtonGroup variant="outlined" aria-label="outlined primary button group">
@@ -183,40 +209,14 @@ const DynamicTable = () => {
           pagination
           paginationPageSize={paginationPageSize}
           onGridReady={onGridReady}
-          onFilterChanged={() => gridApi && gridApi.paginationGoToFirstPage()} // Reset to first page when filtering
+          onFilterChanged={() => {
+            if (gridApi) {
+              gridApi.paginationGoToFirstPage(); // Reset to first page when filtering
+              applyCustomFilterIconColor(); // Reapply custom color on filter change
+            }
+          }}
           defaultColDef={{
             resizable: true,
             sortable: true,
             filter: true,
-            editable: true,
-            clipboard: true, // Enable clipboard support
-          }}
-          suppressClipboardPaste={false}
-          enableCellTextSelection={true} // Enable text selection for copy-paste
-        />
-      </div>
-      <div style={{ marginTop: '10px' }}>
-        <span>
-          Page{' '}
-          <strong>
-            {gridApi ? gridApi.paginationGetCurrentPage() + 1 : 1} of {gridApi ? gridApi.paginationGetTotalPages() : 1}
-          </strong>
-        </span>
-        <select
-          value={paginationPageSize}
-          onChange={onPageSizeChanged}
-          style={{ marginLeft: '10px' }}
-        >
-          {[10, 20, 30, 40, 50].map(pageSize => (
-            <option key={pageSize} value={pageSize}>
-              Show {pageSize}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-};
-
-export default DynamicTable;
-
+            editable:
