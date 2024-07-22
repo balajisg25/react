@@ -6,8 +6,9 @@ import axios from 'axios';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { IconButton, Menu, MenuItem, Tooltip, Button, ButtonGroup } from '@mui/material';
-import { Download as DownloadIcon, FileCsv as FileCsvIcon, FileExcel as FileExcelIcon, FileCopy as FileCopyIcon, Clear as ClearIcon } from '@mui/icons-material';
+import { IconButton, Menu, MenuItem, Tooltip, ButtonGroup } from '@mui/material';
+import { Download as DownloadIcon, FileCsv as FileCsvIcon, FileExcel as FileExcelIcon, FileCopy as FileCopyIcon, Clear as ClearIcon, ViewColumn as ViewColumnIcon } from '@mui/icons-material';
+import './styles.css'; // Import the custom CSS
 
 const DynamicTable = () => {
   const [rowData, setRowData] = useState([]);
@@ -27,6 +28,7 @@ const DynamicTable = () => {
           headerName: key || `Column ${index}`,
           field: key || `column_${index}`, // Field must be unique
           filter: true, // Enable filtering for this column
+          headerClass: params => params.column.isFilterActive() ? 'filter-active' : '' // Dynamically apply the filter-active class
         }));
 
         setColumnDefs(columns);
@@ -39,7 +41,7 @@ const DynamicTable = () => {
   const onGridReady = (params) => {
     setGridApi(params.api);
     params.api.paginationSetPageSize(paginationPageSize);
-    params.api.sizeColumnsToFit(); // Adjust column sizes to fit the grid
+    autoSizeAllColumns(); // Auto-size columns when the grid is ready
   };
 
   const onPageSizeChanged = useCallback((event) => {
@@ -121,12 +123,13 @@ const DynamicTable = () => {
     }
   };
 
-  const clearAll = () => {
+  const autoSizeAllColumns = () => {
     if (gridApi) {
-      gridApi.setFilterModel(null); // Clear all filters
-      gridApi.setSortModel(null); // Clear all sorting
-      gridApi.setRowData([]); // Clear row data
-      setRowData([]); // Clear row data in state
+      const allColumnIds = [];
+      gridApi.getAllColumns().forEach((column) => {
+        allColumnIds.push(column.getId());
+      });
+      gridApi.autoSizeColumns(allColumnIds);
     }
   };
 
@@ -148,9 +151,9 @@ const DynamicTable = () => {
             <ClearIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Clear All">
-          <IconButton onClick={clearAll} color="primary">
-            <ClearIcon />
+        <Tooltip title="Auto-size Columns">
+          <IconButton onClick={autoSizeAllColumns} color="primary">
+            <ViewColumnIcon />
           </IconButton>
         </Tooltip>
       </ButtonGroup>
