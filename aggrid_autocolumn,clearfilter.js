@@ -219,3 +219,4 @@ const DynamicTable = () => {
 };
 
 export default DynamicTable;
+
