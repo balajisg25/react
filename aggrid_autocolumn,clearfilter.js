@@ -7,7 +7,7 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { IconButton, Menu, MenuItem, Tooltip, ButtonGroup } from '@mui/material';
-import { Download as DownloadIcon, FileCsv as FileCsvIcon, FileExcel as FileExcelIcon, FileCopy as FileCopyIcon, Clear as ClearIcon, ViewColumn as ViewColumnIcon } from '@mui/icons-material';
+import { Download as DownloadIcon, FileCsv as FileCsvIcon, FileExcel as FileExcelIcon, FileCopy as FileCopyIcon, Clear as ClearIcon } from '@mui/icons-material';
 import './styles.css'; // Import the custom CSS
 
 const DynamicTable = () => {
@@ -177,11 +177,6 @@ const DynamicTable = () => {
             <ClearIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Auto-size Columns">
-          <IconButton onClick={autoSizeAllColumns} color="primary">
-            <ViewColumnIcon />
-          </IconButton>
-        </Tooltip>
       </ButtonGroup>
       <Menu
         id="export-menu"
@@ -219,4 +214,34 @@ const DynamicTable = () => {
             resizable: true,
             sortable: true,
             filter: true,
-            editable:
+            editable: true,
+            clipboard: true, // Enable clipboard support
+          }}
+          suppressClipboardPaste={false}
+          enableCellTextSelection={true} // Enable text selection for copy-paste
+        />
+      </div>
+      <div style={{ marginTop: '10px' }}>
+        <span>
+          Page{' '}
+          <strong>
+            {gridApi ? gridApi.paginationGetCurrentPage() + 1 : 1} of {gridApi ? gridApi.paginationGetTotalPages() : 1}
+          </strong>
+        </span>
+        <select
+          value={paginationPageSize}
+          onChange={onPageSizeChanged}
+          style={{ marginLeft: '10px' }}
+        >
+          {[10, 20, 30, 40, 50].map(pageSize => (
+            <option key={pageSize} value={pageSize}>
+              Show {pageSize}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+};
+
+export default DynamicTable;
