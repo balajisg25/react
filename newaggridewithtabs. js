@@ -12,15 +12,22 @@ const DynamicTabs = () => {
   const [rowData, setRowData] = useState([]);
   const [gridApi, setGridApi] = useState(null);
 
+  // Define the tabs with only names
   const tabs = ['Users', 'Posts', 'Comments'];
 
-  const fetchData = async (tabName) => {
+  const fetchData = async () => {
+    // Determine the URL and body based on the current tab
+    const tabName = tabs[tabIndex];
     const url = `https://jsonplaceholder.typicode.com/${tabName.toLowerCase()}`;
+    const requestBody = { tabName };
+
     try {
-      const response = await axios.post(url, { tabName });
+      // Make POST request with tabName in JSON body
+      const response = await axios.post(url, requestBody);
       const data = response.data;
       setRowData(data);
 
+      // Dynamically create column definitions
       const columns = Object.keys(data[0] || {}).map((key, index) => ({
         headerName: key || `Column ${index}`,
         field: key || `column_${index}`, // Field must be unique
@@ -35,12 +42,7 @@ const DynamicTabs = () => {
   };
 
   useEffect(() => {
-    const fetchTabData = async () => {
-      const selectedTab = tabs[tabIndex];
-      await fetchData(selectedTab);
-    };
-
-    fetchTabData();
+    fetchData();
   }, [tabIndex]);
 
   const handleTabChange = (event, newIndex) => {
