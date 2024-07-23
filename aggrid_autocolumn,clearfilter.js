@@ -19,8 +19,9 @@ const DynamicTable = () => {
   const open = Boolean(anchorEl);
 
   useEffect(() => {
-    axios.get('https://jsonplaceholder.typicode.com/users')
-      .then(response => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('https://jsonplaceholder.typicode.com/users');
         const fetchedData = response.data;
         setRowData(fetchedData);
 
@@ -32,16 +33,18 @@ const DynamicTable = () => {
         }));
 
         setColumnDefs(columns);
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Error fetching data: ', error);
-      });
+      }
+    };
+
+    fetchData();
   }, []);
 
   const onGridReady = (params) => {
     setGridApi(params.api);
     params.api.paginationSetPageSize(paginationPageSize);
-    autoSizeAllColumns(); // Auto-size columns when the grid is ready
+    autoSizeAllColumns(params.api); // Auto-size columns when the grid is ready
   };
 
   const onPageSizeChanged = useCallback((event) => {
@@ -123,14 +126,12 @@ const DynamicTable = () => {
     }
   };
 
-  const autoSizeAllColumns = () => {
-    if (gridApi) {
-      const allColumnIds = [];
-      gridApi.getAllColumns().forEach((column) => {
-        allColumnIds.push(column.getId());
-      });
-      gridApi.autoSizeColumns(allColumnIds);
-    }
+  const autoSizeAllColumns = (api) => {
+    const allColumnIds = [];
+    api.getAllColumns().forEach((column) => {
+      allColumnIds.push(column.getId());
+    });
+    api.autoSizeColumns(allColumnIds);
   };
 
   // Apply custom color to filter icon when a filter is active
@@ -144,7 +145,7 @@ const DynamicTable = () => {
           if (headerElement) {
             const filterIcon = headerElement.querySelector('.ag-filter-icon');
             if (filterIcon) {
-              filterIcon.style.backgroundColor = 'yellow'; // Your desired background color
+              filterIcon.style.color = 'yellow'; // Your desired color
             }
           }
         }
@@ -154,8 +155,11 @@ const DynamicTable = () => {
 
   useEffect(() => {
     if (gridApi) {
-      applyCustomFilterIconColor();
-      gridApi.addEventListener('filterChanged', applyCustomFilterIconColor); // Apply when filter changes
+      const applyColor = () => applyCustomFilterIconColor();
+      gridApi.addEventListener('filterChanged', applyColor); // Apply when filter changes
+      return () => {
+        gridApi.removeEventListener('filterChanged', applyColor); // Clean up the listener
+      };
     }
   }, [gridApi]);
 
@@ -208,6 +212,7 @@ const DynamicTable = () => {
             if (gridApi) {
               gridApi.paginationGoToFirstPage(); // Reset to first page when filtering
               applyCustomFilterIconColor(); // Reapply custom color on filter change
+              autoSizeAllColumns(gridApi); // Resize columns based on the new filtered data
             }
           }}
           defaultColDef={{
@@ -220,25 +225,6 @@ const DynamicTable = () => {
           suppressClipboardPaste={false}
           enableCellTextSelection={true} // Enable text selection for copy-paste
         />
-      </div>
-      <div style={{ marginTop: '10px' }}>
-        <span>
-          Page{' '}
-          <strong>
-            {gridApi ? gridApi.paginationGetCurrentPage() + 1 : 1} of {gridApi ? gridApi.paginationGetTotalPages() : 1}
-          </strong>
-        </span>
-        <select
-          value={paginationPageSize}
-          onChange={onPageSizeChanged}
-          style={{ marginLeft: '10px' }}
-        >
-          {[10, 20, 30, 40, 50].map(pageSize => (
-            <option key={pageSize} value={pageSize}>
-              Show {pageSize}
-            </option>
-          ))}
-        </select>
       </div>
     </div>
   );
