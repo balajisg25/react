@@ -1,0 +1,74 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Simple API",
+    "description": "A simple API to demonstrate a POST operation"
+  },
+  "host": "api.example.com",
+  "basePath": "/v1",
+  "schemes": [
+    "https"
+  ],
+  "paths": {
+    "/items": {
+      "post": {
+        "summary": "Create a new item",
+        "description": "Creates a new item in the inventory",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Item object that needs to be added to the inventory",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Item"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Item created successfully",
+            "schema": {
+              "$ref": "#/definitions/Item"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Item": {
+      "type": "object",
+      "required": [
+        "name",
+        "price"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "price": {
+          "type": "number",
+          "format": "float"
+        }
+      }
+    }
+  }
+}
