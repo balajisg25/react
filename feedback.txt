@@ -1,0 +1,168 @@
+// src/FeedbackForm.js
+
+import React, { useState } from 'react';
+import axios from 'axios';
+import { TextField, Button, Box, Typography, Rating } from '@mui/material';
+import { SentimentVeryDissatisfied, SentimentDissatisfied, SentimentNeutral, SentimentSatisfied, SentimentVerySatisfied } from '@mui/icons-material';
+
+const customIcons = {
+  1: {
+    icon: <SentimentVeryDissatisfied color="error" />,
+    label: 'Very Dissatisfied',
+  },
+  2: {
+    icon: <SentimentDissatisfied color="error" />,
+    label: 'Dissatisfied',
+  },
+  3: {
+    icon: <SentimentNeutral color="warning" />,
+    label: 'Neutral',
+  },
+  4: {
+    icon: <SentimentSatisfied color="success" />,
+    label: 'Satisfied',
+  },
+  5: {
+    icon: <SentimentVerySatisfied color="success" />,
+    label: 'Very Satisfied',
+  },
+};
+
+function IconContainer(props) {
+  const { value, ...other } = props;
+  return <span {...other}>{customIcons[value].icon}</span>;
+}
+
+export default function FeedbackForm() {
+  const [email, setEmail] = useState('');
+  const [comments, setComments] = useState('');
+  const [starRating, setStarRating] = useState(0);
+  const [smileyRating, setSmileyRating] = useState(0);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    try {
+      const response = await axios.post('http://localhost:5000/feedback', {
+        email,
+        comments,
+        starRating,
+        smileyRating,
+      });
+
+      console.log('Feedback submitted:', response.data);
+      // Reset form
+      setEmail('');
+      setComments('');
+      setStarRating(0);
+      setSmileyRating(0);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+    }
+  };
+
+  return (
+    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 400, mx: 'auto', mt: 4 }}>
+      <Typography variant="h5" component="div" gutterBottom>
+        Customer Feedback
+      </Typography>
+      <TextField
+        fullWidth
+        label="Email (optional)"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        margin="normal"
+      />
+      <TextField
+        fullWidth
+        label="Comments"
+        value={comments}
+        onChange={(e) => setComments(e.target.value)}
+        margin="normal"
+        multiline
+        rows={4}
+      />
+      <Box sx={{ mt: 2, mb: 2 }}>
+        <Typography component="legend">Star Rating</Typography>
+        <Rating
+          name="star-rating"
+          value={starRating}
+          onChange={(event, newValue) => {
+            setStarRating(newValue);
+          }}
+        />
+      </Box>
+      <Box sx={{ mt: 2, mb: 2 }}>
+        <Typography component="legend">Smiley Rating</Typography>
+        <Rating
+          name="smiley-rating"
+          value={smileyRating}
+          onChange={(event, newValue) => {
+            setSmileyRating(newValue);
+          }}
+          IconContainerComponent={IconContainer}
+          highlightSelectedOnly
+        />
+      </Box>
+      <Button type="submit" variant="contained" color="primary">
+        Submit Feedback
+      </Button>
+    </Box>
+  );
+}
+
+
+backend
+
+// server.js
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const { Pool } = require('pg');
+const cors = require('cors');
+
+const app = express();
+const port = 5000;
+
+// PostgreSQL connection setup
+const pool = new Pool({
+  user: 'your_db_user',
+  host: 'your_db_host',
+  database: 'your_db_name',
+  password: 'your_db_password',
+  port: 5432,
+});
+
+app.use(cors());
+app.use(bodyParser.json());
+
+// Endpoint to handle feedback submission
+app.post('/feedback', async (req, res) => {
+  const { email, comments, starRating, smileyRating } = req.body;
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO feedback (email, comments, star_rating, smiley_rating) VALUES ($1, $2, $3, $4) RETURNING *',
+      [email, comments, starRating, smileyRating]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+
+table
+
+CREATE TABLE feedback (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255),
+  comments TEXT,
+  star_rating INTEGER,
+  smiley_rating INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
