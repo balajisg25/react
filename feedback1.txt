@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AppBar, Toolbar, Tabs, Tab, Box, IconButton, Menu, MenuItem, styled } from '@mui/material';
+import { AppBar, Toolbar, Tabs, Tab, Box, IconButton, Menu, MenuItem } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
 import axios from 'axios';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -7,12 +7,6 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { FilterList as FilterListIcon, FileDownload as FileDownloadIcon } from '@mui/icons-material';
-
-// Style for AppBar to have light background
-const AppBarStyled = styled(AppBar)(({ theme }) => ({
-  backgroundColor: '#f0f0f0', // Light background color
-  boxShadow: 'none',
-}));
 
 const App = () => {
   const [tabValue, setTabValue] = useState('Tab 1');
@@ -96,19 +90,11 @@ const App = () => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <AppBarStyled position="static">
+      <AppBar position="static">
         <Toolbar>
           <Tabs
             value={tabValue}
             onChange={handleTabChange}
-            sx={{
-              backgroundColor: '#f0f0f0', // Light background color for Tabs
-              borderRadius: '8px',
-              padding: '10px',
-              '& .MuiTabs-indicator': {
-                display: 'none', // Hide the default indicator
-              },
-            }}
           >
             <Tab label="Tab 1" value="Tab 1" />
             <Tab label="Tab 2" value="Tab 2" />
@@ -130,7 +116,7 @@ const App = () => {
             <MenuItem onClick={() => handleExportClick('xlsx')}>Export as XLSX</MenuItem>
           </Menu>
         </Toolbar>
-      </AppBarStyled>
+      </AppBar>
       <Box sx={{ padding: '20px' }}>
         <div className="ag-theme-alpine" style={{ height: 400, width: '100%', marginTop: '20px' }}>
           <AgGridReact
