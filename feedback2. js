@@ -1,0 +1,167 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { AppBar, Toolbar, Tabs, Tab, Box, IconButton, Menu, MenuItem } from '@mui/material';
+import { AgGridReact } from 'ag-grid-react';
+import axios from 'axios';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import { FilterList as FilterListIcon, FileDownload as FileDownloadIcon } from '@mui/icons-material';
+
+const App = () => {
+  const [tabValue, setTabValue] = useState('Tab 1');
+  const [rowData, setRowData] = useState([]);
+  const [columnDefs, setColumnDefs] = useState([]);
+  const [paginationPageSize, setPaginationPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRows, setTotalRows] = useState(0);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [isFilterApplied, setIsFilterApplied] = useState(false);
+
+  const gridApiRef = useRef(null);
+
+  useEffect(() => {
+    fetchData(tabValue, currentPage);
+  }, [tabValue, currentPage]);
+
+  const fetchData = async (tabValue, page) => {
+    try {
+      const response = await axios.post('/api/data', {
+        tabValue,
+        page,
+        pageSize: paginationPageSize,
+      });
+      console.log('API Response:', response.data);
+      const { data, totalRows } = response.data;
+      if (!Array.isArray(data)) {
+        console.error('Data is not an array:', data);
+        return;
+      }
+      setRowData(data);
+      setTotalRows(totalRows);
+      if (data.length > 0) {
+        setColumnDefs(Object.keys(data[0]).map(key => ({
+          headerName: key,
+          field: key,
+          filter: true,
+          sortable: true,
+          resizable: true,
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+    setCurrentPage(1);
+  };
+
+  const handleExportClick = (format) => {
+    let blob, filename;
+    switch (format) {
+      case 'csv':
+        blob = new Blob([XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(rowData))], { type: 'text/csv' });
+        filename = 'data.csv';
+        break;
+      case 'json':
+        blob = new Blob([JSON.stringify(rowData, null, 2)], { type: 'application/json' });
+        filename = 'data.json';
+        break;
+      case 'xlsx':
+        const worksheet = XLSX.utils.json_to_sheet(rowData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+        blob = XLSX.write(workbook, { bookType: 'xlsx', type: 'blob' });
+        filename = 'data.xlsx';
+        break;
+      default:
+        return;
+    }
+    saveAs(blob, filename);
+    setAnchorEl(null);
+  };
+
+  const handleClearFilters = () => {
+    const gridApi = gridApiRef.current;
+    if (gridApi) {
+      gridApi.setFilterModel(null);
+      gridApi.onFilterChanged();
+      setIsFilterApplied(false);
+    }
+  };
+
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleFilterChanged = useCallback(() => {
+    const gridApi = gridApiRef.current;
+    if (gridApi) {
+      const filters = gridApi.getFilterModel();
+      setIsFilterApplied(Object.keys(filters).length > 0);
+    }
+  }, []);
+
+  const handlePaginationChanged = (page) => {
+    setCurrentPage(page);
+  };
+
+  const onGridReady = params => {
+    gridApiRef.current = params.api;
+    params.api.sizeColumnsToFit();
+    params.api.addEventListener('filterChanged', handleFilterChanged);
+    params.api.addEventListener('paginationChanged', () => handlePaginationChanged(params.api.paginationGetCurrentPage() + 1));
+  };
+
+  return (
+    <Box sx={{ width: '100%' }}>
+      <AppBar position="static" sx={{ height: 48 }}>
+        <Toolbar sx={{ height: '100%', minHeight: 'auto' }}>
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            sx={{ height: '100%' }}
+          >
+            <Tab label="Tab 1" value="Tab 1" />
+            <Tab label="Tab 2" value="Tab 2" />
+          </Tabs>
+          <Box sx={{ flexGrow: 1 }} />
+          {isFilterApplied && (
+            <IconButton onClick={handleClearFilters} color="inherit">
+              <FilterListIcon />
+            </IconButton>
+          )}
+          <IconButton onClick={handleMenuClick} color="inherit">
+            <FileDownloadIcon />
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+          >
+            <MenuItem onClick={() => handleExportClick('csv')}>Export as CSV</MenuItem>
+            <MenuItem onClick={() => handleExportClick('json')}>Export as JSON</MenuItem>
+            <MenuItem onClick={() => handleExportClick('xlsx')}>Export as XLSX</MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+      <Box sx={{ padding: '20px' }}>
+        <div className="ag-theme-alpine" style={{ height: 400, width: '100%', marginTop: '20px' }}>
+          <AgGridReact
+            rowData={rowData}
+            columnDefs={columnDefs}
+            onGridReady={onGridReady}
+            pagination={true}
+            paginationPageSize={paginationPageSize}
+            domLayout='autoHeight'
+            enableCellTextSelection={true}
+            suppressPaginationPanel={false}
+          />
+        </div>
+      </Box>
