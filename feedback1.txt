@@ -13,17 +13,22 @@ const App = () => {
   const [rowData, setRowData] = useState([]);
   const [columnDefs, setColumnDefs] = useState([]);
   const [paginationPageSize, setPaginationPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1); // Track current page
   const [totalRows, setTotalRows] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const [isFilterApplied, setIsFilterApplied] = useState(false); // Track filter state
 
   useEffect(() => {
-    fetchData(tabValue);
-  }, [tabValue]);
+    fetchData(tabValue, currentPage);
+  }, [tabValue, currentPage]);
 
-  const fetchData = async (tabValue, page = 1) => {
+  const fetchData = async (tabValue, page) => {
     try {
-      const response = await axios.post('/api/data', { tabValue, page, pageSize: paginationPageSize });
+      const response = await axios.post('/api/data', {
+        tabValue,
+        page,
+        pageSize: paginationPageSize,
+      });
       const { data, totalRows } = response.data;
       setRowData(data);
       setTotalRows(totalRows);
@@ -43,6 +48,7 @@ const App = () => {
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+    setCurrentPage(1); // Reset to first page when changing tabs
   };
 
   const handleExportClick = (format) => {
@@ -93,21 +99,26 @@ const App = () => {
     }
   }, [gridApi]);
 
+  const handlePaginationChanged = (page) => {
+    setCurrentPage(page);
+  };
+
   let gridApi;
   const onGridReady = params => {
     gridApi = params.api;
     params.api.sizeColumnsToFit();
     gridApi.addEventListener('filterChanged', handleFilterChanged);
+    gridApi.addEventListener('paginationChanged', () => handlePaginationChanged(gridApi.paginationGetCurrentPage() + 1));
   };
 
   return (
     <Box sx={{ width: '100%' }}>
-      <AppBar position="static" sx={{ height: 48 }}> {/* Set AppBar height */}
-        <Toolbar sx={{ height: '100%', minHeight: 'auto' }}> {/* Set Toolbar height */}
+      <AppBar position="static" sx={{ height: 48 }}>
+        <Toolbar sx={{ height: '100%', minHeight: 'auto' }}>
           <Tabs
             value={tabValue}
             onChange={handleTabChange}
-            sx={{ height: '100%' }} // Make Tabs fit within the AppBar
+            sx={{ height: '100%' }}
           >
             <Tab label="Tab 1" value="Tab 1" />
             <Tab label="Tab 2" value="Tab 2" />
