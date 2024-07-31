@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { FilterList as FilterListIcon, FileDownload as FileDownloadIcon } from '@mui/icons-material';
 
-const App = () => {
+const Test = () => {
   const [tabValue, setTabValue] = useState('Tab 1');
   const [rowData, setRowData] = useState([]);
   const [columnDefs, setColumnDefs] = useState([]);
@@ -32,13 +32,16 @@ const App = () => {
         pageSize: paginationPageSize,
       });
       console.log('API Response:', response.data);
+
       const { data, totalRows } = response.data;
       if (!Array.isArray(data)) {
         console.error('Data is not an array:', data);
         return;
       }
+
       setRowData(data);
       setTotalRows(totalRows);
+
       if (data.length > 0) {
         setColumnDefs(Object.keys(data[0]).map(key => ({
           headerName: key,
@@ -165,3 +168,8 @@ const App = () => {
           />
         </div>
       </Box>
+    </Box>
+  );
+};
+
+export default Test;
