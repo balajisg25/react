@@ -1,162 +1,156 @@
-import React, { useState } from 'react';
-import {
-  TextField,
-  Box,
-  Button,
-  Rating,
-  Typography,
-  IconButton,
-  Tooltip,
-  Snackbar,
-  Alert
-} from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { AppBar, Toolbar, Tabs, Tab, Box, IconButton, Menu, MenuItem, styled } from '@mui/material';
+import { AgGridReact } from 'ag-grid-react';
 import axios from 'axios';
-import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
-import SentimentDissatisfiedIcon from '@mui/icons-material/SentimentDissatisfied';
-import SentimentSatisfiedIcon from '@mui/icons-material/SentimentSatisfied';
-import SentimentSatisfiedAltIcon from '@mui/icons-material/SentimentSatisfiedAlt';
-import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import { MoreVert as MoreVertIcon, FilterList as FilterListIcon, FileDownload as FileDownloadIcon } from '@mui/icons-material';
 
-const FeedbackForm = () => {
-  const [email, setEmail] = useState('');
-  const [comments, setComments] = useState('');
-  const [starRating, setStarRating] = useState(0);
-  const [smileyRating, setSmileyRating] = useState(0);
-  const [message, setMessage] = useState('');
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
-  const [errors, setErrors] = useState({});
-  const maxCommentsLength = 200;
+const FancyTabs = styled(Tabs)(({ theme }) => ({
+  backgroundColor: '#f0f0f0', // Light background color
+  borderRadius: '8px',
+  padding: '10px',
+  '& .MuiTabs-indicator': {
+    display: 'none', // Hide the default indicator
+  },
+}));
 
-  const handleSmileyClick = (value) => {
-    setSmileyRating(value);
-  };
+const FancyTab = styled(Tab)(({ theme }) => ({
+  textTransform: 'none',
+  fontWeight: theme.typography.fontWeightBold,
+  marginRight: theme.spacing(1),
+  padding: theme.spacing(1, 2),
+  '&.Mui-selected': {
+    backgroundColor: theme.palette.primary.main, // Background color for the selected tab
+    color: theme.palette.common.white,
+    borderRadius: '4px',
+  },
+}));
 
-  const validate = () => {
-    const newErrors = {};
-    if (!comments) newErrors.comments = 'Comments are required';
-    if (!starRating) newErrors.starRating = 'Star rating is required';
-    if (!smileyRating) newErrors.smileyRating = 'Smiley rating is required';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+const App = () => {
+  const [tabValue, setTabValue] = useState('Tab 1');
+  const [rowData, setRowData] = useState([]);
+  const [columnDefs, setColumnDefs] = useState([]);
+  const [paginationPageSize, setPaginationPageSize] = useState(10);
+  const [totalRows, setTotalRows] = useState(0);
+  const [anchorEl, setAnchorEl] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+  useEffect(() => {
+    fetchData(tabValue);
+  }, [tabValue]);
 
+  const fetchData = async (tabValue, page = 1) => {
     try {
-      await axios.post('http://localhost:5000/api/feedback', {
-        email,
-        comments,
-        starRating,
-        smileyRating,
-      });
-      setMessage('Feedback submitted successfully!');
-      setSnackbarSeverity('success');
-      setOpenSnackbar(true);
-      // Clear the form
-      setEmail('');
-      setComments('');
-      setStarRating(0);
-      setSmileyRating(0);
-      setErrors({});
+      const response = await axios.post('/api/data', { tabValue, page, pageSize: paginationPageSize });
+      const { data, totalRows } = response.data;
+      setRowData(data);
+      setTotalRows(totalRows);
+      if (data.length > 0) {
+        setColumnDefs(Object.keys(data[0]).map(key => ({
+          headerName: key,
+          field: key,
+          filter: true,
+          sortable: true,
+          resizable: true,
+        })));
+      }
     } catch (error) {
-      console.error('Error submitting feedback:', error);
-      setMessage('Error submitting feedback. Please try again.');
-      setSnackbarSeverity('error');
-      setOpenSnackbar(true);
+      console.error('Error fetching data:', error);
     }
   };
 
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
+  const handleExportClick = (format) => {
+    let blob, filename;
+    switch (format) {
+      case 'csv':
+        blob = new Blob([XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(rowData))], { type: 'text/csv' });
+        filename = 'data.csv';
+        break;
+      case 'json':
+        blob = new Blob([JSON.stringify(rowData, null, 2)], { type: 'application/json' });
+        filename = 'data.json';
+        break;
+      case 'xlsx':
+        const worksheet = XLSX.utils.json_to_sheet(rowData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+        blob = XLSX.write(workbook, { bookType: 'xlsx', type: 'blob' });
+        filename = 'data.xlsx';
+        break;
+      default:
+        return;
+    }
+    saveAs(blob, filename);
+    setAnchorEl(null);
+  };
+
+  const handleClearFilters = () => {
+    gridApi.setFilterModel(null);
+    gridApi.onFilterChanged();
+  };
+
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  let gridApi;
+  const onGridReady = params => {
+    gridApi = params.api;
+    params.api.sizeColumnsToFit();
   };
 
   return (
-    <Box component="form" noValidate autoComplete="off" sx={{ maxWidth: 400, m: '0 auto', p: 2, border: '1px solid #ccc', borderRadius: 1 }} onSubmit={handleSubmit}>
-      <Typography variant="h6" gutterBottom>
-        Feedback Form
-      </Typography>
-      <TextField
-        fullWidth
-        label="Email (optional)"
-        variant="outlined"
-        margin="normal"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <TextField
-        fullWidth
-        label={`Comments (${comments.length}/${maxCommentsLength})`}
-        variant="outlined"
-        margin="normal"
-        multiline
-        rows={4}
-        inputProps={{ maxLength: maxCommentsLength }}
-        value={comments}
-        onChange={(e) => setComments(e.target.value)}
-        error={!!errors.comments}
-        helperText={errors.comments}
-      />
-      <Box sx={{ my: 2 }}>
-        <Typography component="legend">Star Rating</Typography>
-        <Rating
-          name="star-rating"
-          value={starRating}
-          onChange={(event, newValue) => setStarRating(newValue)}
-        />
-        {errors.starRating && (
-          <Typography variant="caption" color="error">
-            {errors.starRating}
-          </Typography>
-        )}
+    <Box sx={{ width: '100%' }}>
+      <AppBar position="static">
+        <Toolbar>
+          <FancyTabs value={tabValue} onChange={handleTabChange}>
+            <FancyTab label="Tab 1" value="Tab 1" />
+            <FancyTab label="Tab 2" value="Tab 2" />
+          </FancyTabs>
+          <Box sx={{ flexGrow: 1 }} />
+          <IconButton onClick={handleClearFilters} color="inherit">
+            <FilterListIcon />
+          </IconButton>
+          <IconButton onClick={handleMenuClick} color="inherit">
+            <FileDownloadIcon />
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+          >
+            <MenuItem onClick={() => handleExportClick('csv')}>Export as CSV</MenuItem>
+            <MenuItem onClick={() => handleExportClick('json')}>Export as JSON</MenuItem>
+            <MenuItem onClick={() => handleExportClick('xlsx')}>Export as XLSX</MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+      <Box sx={{ padding: '20px' }}>
+        <div className="ag-theme-alpine" style={{ height: 400, width: '100%', marginTop: '20px' }}>
+          <AgGridReact
+            rowData={rowData}
+            columnDefs={columnDefs}
+            onGridReady={onGridReady}
+            pagination={true}
+            paginationPageSize={paginationPageSize}
+            domLayout='autoHeight'
+            enableCellTextSelection={true}
+            suppressPaginationPanel={false}
+          />
+        </div>
       </Box>
-      <Box sx={{ my: 2 }}>
-        <Typography component="legend">Smiley Rating</Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-          <Tooltip title="Very Dissatisfied">
-            <IconButton onClick={() => handleSmileyClick(1)} color={smileyRating === 1 ? 'primary' : 'default'}>
-              <SentimentVeryDissatisfiedIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Dissatisfied">
-            <IconButton onClick={() => handleSmileyClick(2)} color={smileyRating === 2 ? 'primary' : 'default'}>
-              <SentimentDissatisfiedIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Neutral">
-            <IconButton onClick={() => handleSmileyClick(3)} color={smileyRating === 3 ? 'primary' : 'default'}>
-              <SentimentSatisfiedIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Satisfied">
-            <IconButton onClick={() => handleSmileyClick(4)} color={smileyRating === 4 ? 'primary' : 'default'}>
-              <SentimentSatisfiedAltIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Very Satisfied">
-            <IconButton onClick={() => handleSmileyClick(5)} color={smileyRating === 5 ? 'primary' : 'default'}>
-              <SentimentVerySatisfiedIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-        {errors.smileyRating && (
-          <Typography variant="caption" color="error">
-            {errors.smileyRating}
-          </Typography>
-        )}
-      </Box>
-      <Button type="submit" variant="contained" color="primary" fullWidth>
-        Submit
-      </Button>
-      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
-        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
-          {message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };
 
-export default FeedbackForm;
+export default App;
