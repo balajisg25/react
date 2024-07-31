@@ -1,0 +1,85 @@
+import React, { useState } from 'react';
+import {
+  TextField,
+  Box,
+  Button,
+  Rating,
+  Typography,
+  IconButton,
+  Tooltip
+} from '@mui/material';
+import SentimentSatisfiedIcon from '@mui/icons-material/SentimentSatisfied';
+import SentimentDissatisfiedIcon from '@mui/icons-material/SentimentDissatisfied';
+import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
+
+const FeedbackForm = () => {
+  const [email, setEmail] = useState('');
+  const [comments, setComments] = useState('');
+  const [starRating, setStarRating] = useState(0);
+  const [smileyRating, setSmileyRating] = useState(0);
+  const maxCommentsLength = 200;
+
+  const handleSmileyClick = (value) => {
+    setSmileyRating(value);
+  };
+
+  return (
+    <Box component="form" noValidate autoComplete="off" sx={{ maxWidth: 400, m: '0 auto', p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
+      <Typography variant="h6" gutterBottom>
+        Feedback Form
+      </Typography>
+      <TextField
+        fullWidth
+        label="Email (optional)"
+        variant="outlined"
+        margin="normal"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <TextField
+        fullWidth
+        label={`Comments (${comments.length}/${maxCommentsLength})`}
+        variant="outlined"
+        margin="normal"
+        multiline
+        rows={4}
+        inputProps={{ maxLength: maxCommentsLength }}
+        value={comments}
+        onChange={(e) => setComments(e.target.value)}
+      />
+      <Box sx={{ my: 2 }}>
+        <Typography component="legend">Star Rating</Typography>
+        <Rating
+          name="star-rating"
+          value={starRating}
+          onChange={(event, newValue) => setStarRating(newValue)}
+        />
+      </Box>
+      <Box sx={{ my: 2 }}>
+        <Typography component="legend">Smiley Rating</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+          <Tooltip title="Dissatisfied">
+            <IconButton onClick={() => handleSmileyClick(1)} color={smileyRating === 1 ? 'primary' : 'default'}>
+              <SentimentDissatisfiedIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Satisfied">
+            <IconButton onClick={() => handleSmileyClick(2)} color={smileyRating === 2 ? 'primary' : 'default'}>
+              <SentimentSatisfiedIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Very Satisfied">
+            <IconButton onClick={() => handleSmileyClick(3)} color={smileyRating === 3 ? 'primary' : 'default'}>
+              <SentimentVerySatisfiedIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+      <Button type="submit" variant="contained" color="primary" fullWidth>
+        Submit
+      </Button>
+    </Box>
+  );
+};
+
+export default FeedbackForm;
