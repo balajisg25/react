@@ -6,10 +6,15 @@ import {
   Rating,
   Typography,
   IconButton,
-  Tooltip
+  Tooltip,
+  Snackbar,
+  Alert
 } from '@mui/material';
-import SentimentSatisfiedIcon from '@mui/icons-material/SentimentSatisfied';
+import axios from 'axios';
+import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
 import SentimentDissatisfiedIcon from '@mui/icons-material/SentimentDissatisfied';
+import SentimentSatisfiedIcon from '@mui/icons-material/SentimentSatisfied';
+import SentimentSatisfiedAltIcon from '@mui/icons-material/SentimentSatisfiedAlt';
 import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
 
 const FeedbackForm = () => {
@@ -17,14 +22,59 @@ const FeedbackForm = () => {
   const [comments, setComments] = useState('');
   const [starRating, setStarRating] = useState(0);
   const [smileyRating, setSmileyRating] = useState(0);
+  const [message, setMessage] = useState('');
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [errors, setErrors] = useState({});
   const maxCommentsLength = 200;
 
   const handleSmileyClick = (value) => {
     setSmileyRating(value);
   };
 
+  const validate = () => {
+    const newErrors = {};
+    if (!comments) newErrors.comments = 'Comments are required';
+    if (!starRating) newErrors.starRating = 'Star rating is required';
+    if (!smileyRating) newErrors.smileyRating = 'Smiley rating is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    try {
+      await axios.post('http://localhost:5000/api/feedback', {
+        email,
+        comments,
+        starRating,
+        smileyRating,
+      });
+      setMessage('Feedback submitted successfully!');
+      setSnackbarSeverity('success');
+      setOpenSnackbar(true);
+      // Clear the form
+      setEmail('');
+      setComments('');
+      setStarRating(0);
+      setSmileyRating(0);
+      setErrors({});
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      setMessage('Error submitting feedback. Please try again.');
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
+  };
+
   return (
-    <Box component="form" noValidate autoComplete="off" sx={{ maxWidth: 400, m: '0 auto', p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
+    <Box component="form" noValidate autoComplete="off" sx={{ maxWidth: 400, m: '0 auto', p: 2, border: '1px solid #ccc', borderRadius: 1 }} onSubmit={handleSubmit}>
       <Typography variant="h6" gutterBottom>
         Feedback Form
       </Typography>
@@ -46,6 +96,8 @@ const FeedbackForm = () => {
         inputProps={{ maxLength: maxCommentsLength }}
         value={comments}
         onChange={(e) => setComments(e.target.value)}
+        error={!!errors.comments}
+        helperText={errors.comments}
       />
       <Box sx={{ my: 2 }}>
         <Typography component="legend">Star Rating</Typography>
@@ -54,30 +106,55 @@ const FeedbackForm = () => {
           value={starRating}
           onChange={(event, newValue) => setStarRating(newValue)}
         />
+        {errors.starRating && (
+          <Typography variant="caption" color="error">
+            {errors.starRating}
+          </Typography>
+        )}
       </Box>
       <Box sx={{ my: 2 }}>
         <Typography component="legend">Smiley Rating</Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-          <Tooltip title="Dissatisfied">
+          <Tooltip title="Very Dissatisfied">
             <IconButton onClick={() => handleSmileyClick(1)} color={smileyRating === 1 ? 'primary' : 'default'}>
+              <SentimentVeryDissatisfiedIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Dissatisfied">
+            <IconButton onClick={() => handleSmileyClick(2)} color={smileyRating === 2 ? 'primary' : 'default'}>
               <SentimentDissatisfiedIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Satisfied">
-            <IconButton onClick={() => handleSmileyClick(2)} color={smileyRating === 2 ? 'primary' : 'default'}>
+          <Tooltip title="Neutral">
+            <IconButton onClick={() => handleSmileyClick(3)} color={smileyRating === 3 ? 'primary' : 'default'}>
               <SentimentSatisfiedIcon />
             </IconButton>
           </Tooltip>
+          <Tooltip title="Satisfied">
+            <IconButton onClick={() => handleSmileyClick(4)} color={smileyRating === 4 ? 'primary' : 'default'}>
+              <SentimentSatisfiedAltIcon />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Very Satisfied">
-            <IconButton onClick={() => handleSmileyClick(3)} color={smileyRating === 3 ? 'primary' : 'default'}>
+            <IconButton onClick={() => handleSmileyClick(5)} color={smileyRating === 5 ? 'primary' : 'default'}>
               <SentimentVerySatisfiedIcon />
             </IconButton>
           </Tooltip>
         </Box>
+        {errors.smileyRating && (
+          <Typography variant="caption" color="error">
+            {errors.smileyRating}
+          </Typography>
+        )}
       </Box>
       <Button type="submit" variant="contained" color="primary" fullWidth>
         Submit
       </Button>
+      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
