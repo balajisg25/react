@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AppBar, Toolbar, Tabs, Tab, Box, IconButton, Menu, MenuItem } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
 import axios from 'axios';
@@ -15,6 +15,7 @@ const App = () => {
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const [totalRows, setTotalRows] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [isFilterApplied, setIsFilterApplied] = useState(false); // Track filter state
 
   useEffect(() => {
     fetchData(tabValue);
@@ -70,8 +71,11 @@ const App = () => {
   };
 
   const handleClearFilters = () => {
-    gridApi.setFilterModel(null);
-    gridApi.onFilterChanged();
+    if (gridApi) {
+      gridApi.setFilterModel(null);
+      gridApi.onFilterChanged();
+      setIsFilterApplied(false);
+    }
   };
 
   const handleMenuClick = (event) => {
@@ -82,27 +86,38 @@ const App = () => {
     setAnchorEl(null);
   };
 
+  const handleFilterChanged = useCallback(() => {
+    if (gridApi) {
+      const filters = gridApi.getFilterModel();
+      setIsFilterApplied(Object.keys(filters).length > 0);
+    }
+  }, [gridApi]);
+
   let gridApi;
   const onGridReady = params => {
     gridApi = params.api;
     params.api.sizeColumnsToFit();
+    gridApi.addEventListener('filterChanged', handleFilterChanged);
   };
 
   return (
     <Box sx={{ width: '100%' }}>
-      <AppBar position="static">
-        <Toolbar>
+      <AppBar position="static" sx={{ height: 48 }}> {/* Set AppBar height */}
+        <Toolbar sx={{ height: '100%', minHeight: 'auto' }}> {/* Set Toolbar height */}
           <Tabs
             value={tabValue}
             onChange={handleTabChange}
+            sx={{ height: '100%' }} // Make Tabs fit within the AppBar
           >
             <Tab label="Tab 1" value="Tab 1" />
             <Tab label="Tab 2" value="Tab 2" />
           </Tabs>
           <Box sx={{ flexGrow: 1 }} />
-          <IconButton onClick={handleClearFilters} color="inherit">
-            <FilterListIcon />
-          </IconButton>
+          {isFilterApplied && (
+            <IconButton onClick={handleClearFilters} color="inherit">
+              <FilterListIcon />
+            </IconButton>
+          )}
           <IconButton onClick={handleMenuClick} color="inherit">
             <FileDownloadIcon />
           </IconButton>
