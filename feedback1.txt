@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppBar, Toolbar, Tabs, Tab, Box, IconButton, Menu, MenuItem } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
 import axios from 'axios';
@@ -17,6 +17,9 @@ const App = () => {
   const [totalRows, setTotalRows] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const [isFilterApplied, setIsFilterApplied] = useState(false); // Track filter state
+
+  // Ref to store gridApi
+  const gridApiRef = useRef(null);
 
   useEffect(() => {
     fetchData(tabValue, currentPage);
@@ -77,6 +80,7 @@ const App = () => {
   };
 
   const handleClearFilters = () => {
+    const gridApi = gridApiRef.current;
     if (gridApi) {
       gridApi.setFilterModel(null);
       gridApi.onFilterChanged();
@@ -93,22 +97,22 @@ const App = () => {
   };
 
   const handleFilterChanged = useCallback(() => {
+    const gridApi = gridApiRef.current;
     if (gridApi) {
       const filters = gridApi.getFilterModel();
       setIsFilterApplied(Object.keys(filters).length > 0);
     }
-  }, [gridApi]);
+  }, []);
 
   const handlePaginationChanged = (page) => {
     setCurrentPage(page);
   };
 
-  let gridApi;
   const onGridReady = params => {
-    gridApi = params.api;
+    gridApiRef.current = params.api;
     params.api.sizeColumnsToFit();
-    gridApi.addEventListener('filterChanged', handleFilterChanged);
-    gridApi.addEventListener('paginationChanged', () => handlePaginationChanged(gridApi.paginationGetCurrentPage() + 1));
+    params.api.addEventListener('filterChanged', handleFilterChanged);
+    params.api.addEventListener('paginationChanged', () => handlePaginationChanged(params.api.paginationGetCurrentPage() + 1));
   };
 
   return (
