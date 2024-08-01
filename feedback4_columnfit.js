@@ -32,7 +32,7 @@ const App = () => {
       setTableData(parsedData);
       setDynamicColumns(parsedData);
       setLoading(false);
-      fitColumns();
+      autoSizeAllColumns();
     } else {
       try {
         const response = await axios.post('/api/data', { tabValue });
@@ -41,7 +41,7 @@ const App = () => {
         setTableData(responseData);
         setDynamicColumns(responseData);
         setLoading(false);
-        fitColumns();
+        autoSizeAllColumns();
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load data. Please try again.');
@@ -56,7 +56,8 @@ const App = () => {
         headerName: key.charAt(0).toUpperCase() + key.slice(1),
         field: key,
         filter: true, // Enable filtering
-        sortable: true // Enable sorting
+        sortable: true, // Enable sorting
+        resizable: true // Enable resizing
       }));
       setColumnDefs(columns);
     }
@@ -121,9 +122,13 @@ const App = () => {
     handleMenuClose();
   };
 
-  const fitColumns = () => {
+  const autoSizeAllColumns = () => {
     if (gridApiRef.current) {
-      gridApiRef.current.sizeColumnsToFit();
+      const allColumnIds = [];
+      gridApiRef.current.getAllColumns().forEach((column) => {
+        allColumnIds.push(column.getId());
+      });
+      gridApiRef.current.autoSizeColumns(allColumnIds);
     }
   };
 
@@ -162,8 +167,11 @@ const App = () => {
         </Box>
       </Box>
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: 400 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" flexDirection="column" sx={{ height: 400 }}>
           <CircularProgress />
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Loading data, please wait...
+          </Typography>
         </Box>
       ) : error ? (
         <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: 400 }}>
