@@ -124,12 +124,17 @@ const App = () => {
 
   const autoSizeAllColumns = () => {
     if (gridApiRef.current) {
-      const allColumnIds = [];
-      gridApiRef.current.getAllColumns().forEach((column) => {
-        allColumnIds.push(column.getId());
-      });
-      gridApiRef.current.autoSizeColumns(allColumnIds);
+      const allColumns = gridApiRef.current.getAllColumns();
+      if (allColumns && allColumns.length > 0) {
+        const allColumnIds = allColumns.map(column => column.getId());
+        gridApiRef.current.autoSizeColumns(allColumnIds);
+      }
     }
+  };
+
+  const onGridReady = (params) => {
+    gridApiRef.current = params.api;
+    autoSizeAllColumns();
   };
 
   return (
