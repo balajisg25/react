@@ -1,95 +1,138 @@
-import React, { useState, useEffect } from 'react';
-import { Tabs, Tab, Button } from '@mui/material';
+import React, { useState, useEffect, useRef } from 'react';
+import { AppBar, Tabs, Tab, Box, IconButton, Tooltip } from '@mui/material';
+import ClearAllIcon from '@mui/icons-material/ClearAll';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import axios from 'axios';
 import { AgGridReact } from 'ag-grid-react';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import axios from 'axios';
 
 const App = () => {
   const [tabValue, setTabValue] = useState(0);
-  const [rowData, setRowData] = useState([]);
+  const [tableData, setTableData] = useState([]);
   const [columnDefs, setColumnDefs] = useState([]);
-  
-  const tabs = [
-    { label: 'Tab 1', value: 0 },
-    { label: 'Tab 2', value: 1 },
-    // Add more tabs as needed
-  ];
+  const [filterApplied, setFilterApplied] = useState(false);
+  const gridApiRef = useRef(null);
 
-  const handleTabChange = (event, newValue) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      const cachedData = localStorage.getItem('tableData');
+      if (cachedData) {
+        setTableData(JSON.parse(cachedData));
+      } else {
+        try {
+          const response = await axios.post('/api/data', { tabValue });
+          localStorage.setItem('tableData', JSON.stringify(response.data));
+          setTableData(response.data);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        }
+      }
+    };
+    fetchData();
+  }, [tabValue]);
+
+  const handleChange = (event, newValue) => {
     setTabValue(newValue);
   };
 
-  useEffect(() => {
-    // Fetch data based on tabValue
-    axios.post('/api/endpoint', { tabValue })
-      .then(response => {
-        setRowData(response.data.rowData);  // Adjust based on your API response
-        setColumnDefs(response.data.columnDefs);  // Adjust based on your API response
-      })
-      .catch(error => console.error(error));
-  }, [tabValue]);
-
-  const handleExport = (format) => {
-    const exportParams = {
-      fileName: `export.${format}`
-    };
-
-    switch (format) {
-      case 'csv':
-        gridOptions.api.exportDataAsCsv(exportParams);
-        break;
-      case 'xlsx':
-        gridOptions.api.exportDataAsExcel(exportParams);
-        break;
-      case 'json':
-        const data = gridOptions.api.getDataAsCsv();  // Example for CSV
-        // Convert CSV data to JSON (implement conversion as needed)
-        // Download or handle JSON data
-        break;
-      default:
-        break;
+  const clearFilters = () => {
+    if (gridApiRef.current) {
+      gridApiRef.current.setFilterModel(null);
+      setFilterApplied(false);
     }
   };
 
-  const handleClearFilters = () => {
-    gridOptions.api.setFilterModel(null);
+  const onFilterChanged = () => {
+    if (gridApiRef.current) {
+      const isFilterActive = gridApiRef.current.isAnyFilterPresent();
+      setFilterApplied(isFilterActive);
+    }
   };
 
-  const gridOptions = {
-    pagination: true,
-    paginationPageSize: 10,
-    defaultColDef: {
-      sortable: true,
-      filter: true,
-      resizable: true,
-    },
-    onGridReady: params => {
-      params.api.sizeColumnsToFit();
-    },
-    domLayout: 'autoHeight',
-    rowData: rowData,
-    columnDefs: columnDefs,
-    enableBrowserTooltips: true,
+  const exportData = (format) => {
+    let fileData;
+    let fileType;
+    let fileExtension;
+
+    switch (format) {
+      case 'csv':
+        fileData = tableData.map(row => Object.values(row).join(',')).join('\n');
+        fileType = 'text/csv';
+        fileExtension = '.csv';
+        break;
+      case 'json':
+        fileData = JSON.stringify(tableData, null, 2);
+        fileType = 'application/json';
+        fileExtension = '.json';
+        break;
+      case 'xlsx':
+        const worksheet = XLSX.utils.json_to_sheet(tableData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+        fileData = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        fileExtension = '.xlsx';
+        break;
+      default:
+        return;
+    }
+
+    const blob = new Blob([fileData], { type: fileType });
+    saveAs(blob, `export${fileExtension}`);
   };
 
   return (
-    <div>
-      <Tabs value={tabValue} onChange={handleTabChange} aria-label="dynamic tabs">
-        {tabs.map((tab) => (
-          <Tab key={tab.value} label={tab.label} />
-        ))}
-      </Tabs>
-      
-      <Button onClick={() => handleExport('csv')}>Export CSV</Button>
-      <Button onClick={() => handleExport('xlsx')}>Export XLSX</Button>
-      <Button onClick={() => handleExport('json')}>Export JSON</Button>
-      <Button onClick={handleClearFilters}>Clear Filters</Button>
-      
-      <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
-        <AgGridReact {...gridOptions} />
-      </div>
-    </div>
+    <Box sx={{ width: '100%' }}>
+      <AppBar position="static">
+        <Tabs value={tabValue} onChange={handleChange} variant="scrollable" scrollButtons="auto">
+          <Tab label="Tab 1" value={0} />
+          <Tab label="Tab 2" value={1} />
+          <Tab label="Tab 3" value={2} />
+        </Tabs>
+      </AppBar>
+      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ my: 2, px: 2 }}>
+        <Box>
+          <Tooltip title="Export as CSV">
+            <IconButton onClick={() => exportData('csv')}>
+              <FileDownloadIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Export as JSON">
+            <IconButton onClick={() => exportData('json')}>
+              <FileDownloadIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Export as XLSX">
+            <IconButton onClick={() => exportData('xlsx')}>
+              <FileDownloadIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        {filterApplied && (
+          <Tooltip title="Clear Filters">
+            <IconButton onClick={clearFilters}>
+              <ClearAllIcon />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
+      <Box sx={{ height: 400, width: '100%' }} className="ag-theme-alpine">
+        <AgGridReact
+          rowData={tableData}
+          columnDefs={columnDefs}
+          onGridReady={params => {
+            gridApiRef.current = params.api;
+            params.api.sizeColumnsToFit();
+          }}
+          onFilterChanged={onFilterChanged}
+          pagination={true}
+          paginationPageSize={10}
+        />
+      </Box>
+    </Box>
   );
 };
 
