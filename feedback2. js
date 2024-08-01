@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppBar, Tabs, Tab, Box, IconButton, Tooltip } from '@mui/material';
+import { AppBar, Tabs, Tab, Box, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import axios from 'axios';
@@ -10,21 +10,22 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 const App = () => {
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState('tab1');
   const [tableData, setTableData] = useState([]);
   const [columnDefs, setColumnDefs] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
   const gridApiRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const cachedData = localStorage.getItem('tableData');
+      const cachedData = localStorage.getItem(`tableData_${tabValue}`);
       if (cachedData) {
         setTableData(JSON.parse(cachedData));
       } else {
         try {
           const response = await axios.post('/api/data', { tabValue });
-          localStorage.setItem('tableData', JSON.stringify(response.data));
+          localStorage.setItem(`tableData_${tabValue}`, JSON.stringify(response.data));
           setTableData(response.data);
         } catch (error) {
           console.error('Error fetching data:', error);
@@ -50,6 +51,14 @@ const App = () => {
       const isFilterActive = gridApiRef.current.isAnyFilterPresent();
       setFilterApplied(isFilterActive);
     }
+  };
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
   };
 
   const exportData = (format) => {
@@ -82,34 +91,34 @@ const App = () => {
 
     const blob = new Blob([fileData], { type: fileType });
     saveAs(blob, `export${fileExtension}`);
+    handleMenuClose();
   };
 
   return (
     <Box sx={{ width: '100%' }}>
       <AppBar position="static">
         <Tabs value={tabValue} onChange={handleChange} variant="scrollable" scrollButtons="auto">
-          <Tab label="Tab 1" value={0} />
-          <Tab label="Tab 2" value={1} />
-          <Tab label="Tab 3" value={2} />
+          <Tab label="Tab 1" value="tab1" />
+          <Tab label="Tab 2" value="tab2" />
+          <Tab label="Tab 3" value="tab3" />
         </Tabs>
       </AppBar>
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ my: 2, px: 2 }}>
         <Box>
-          <Tooltip title="Export as CSV">
-            <IconButton onClick={() => exportData('csv')}>
+          <Tooltip title="Export Options">
+            <IconButton onClick={handleMenuOpen}>
               <FileDownloadIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Export as JSON">
-            <IconButton onClick={() => exportData('json')}>
-              <FileDownloadIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Export as XLSX">
-            <IconButton onClick={() => exportData('xlsx')}>
-              <FileDownloadIcon />
-            </IconButton>
-          </Tooltip>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+          >
+            <MenuItem onClick={() => exportData('csv')}>Export as CSV</MenuItem>
+            <MenuItem onClick={() => exportData('json')}>Export as JSON</MenuItem>
+            <MenuItem onClick={() => exportData('xlsx')}>Export as XLSX</MenuItem>
+          </Menu>
         </Box>
         {filterApplied && (
           <Tooltip title="Clear Filters">
