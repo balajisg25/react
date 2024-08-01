@@ -120,7 +120,7 @@ const App = () => {
         </Tabs>
       </AppBar>
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ my: 2, px: 2 }}>
-        <Box>
+        <Box display="flex" alignItems="center">
           <Tooltip title="Export Options">
             <IconButton onClick={handleMenuOpen}>
               <FileDownloadIcon />
@@ -135,14 +135,14 @@ const App = () => {
             <MenuItem onClick={() => exportData('json')}>Export as JSON</MenuItem>
             <MenuItem onClick={() => exportData('xlsx')}>Export as XLSX</MenuItem>
           </Menu>
+          {filterApplied && (
+            <Tooltip title="Clear Filters">
+              <IconButton onClick={clearFilters}>
+                <ClearAllIcon />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
-        {filterApplied && (
-          <Tooltip title="Clear Filters">
-            <IconButton onClick={clearFilters}>
-              <ClearAllIcon />
-            </IconButton>
-          </Tooltip>
-        )}
       </Box>
       <Box sx={{ height: 400, width: '100%' }} className="ag-theme-alpine">
         <AgGridReact
