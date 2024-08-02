@@ -107,6 +107,12 @@ const App = () => {
     setAnchorEl(null);
   };
 
+  const generateFilename = (extension) => {
+    const date = new Date();
+    const timestamp = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}_${String(date.getHours()).padStart(2, '0')}-${String(date.getMinutes()).padStart(2, '0')}-${String(date.getSeconds()).padStart(2, '0')}`;
+    return `export_${timestamp}.${extension}`;
+  };
+
   const exportData = (format) => {
     let fileData;
     let fileType;
@@ -116,12 +122,12 @@ const App = () => {
       case 'csv':
         fileData = tableData.map(row => Object.values(row).join(',')).join('\n');
         fileType = 'text/csv';
-        fileExtension = '.csv';
+        fileExtension = 'csv';
         break;
       case 'json':
         fileData = JSON.stringify(tableData, null, 2);
         fileType = 'application/json';
-        fileExtension = '.json';
+        fileExtension = 'json';
         break;
       case 'xlsx':
         const worksheet = XLSX.utils.json_to_sheet(tableData);
@@ -129,14 +135,15 @@ const App = () => {
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
         fileData = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
         fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-        fileExtension = '.xlsx';
+        fileExtension = 'xlsx';
         break;
       default:
         return;
     }
 
     const blob = new Blob([fileData], { type: fileType });
-    saveAs(blob, `export${fileExtension}`);
+    const filename = generateFilename(fileExtension);
+    saveAs(blob, filename);
     handleMenuClose();
   };
 
