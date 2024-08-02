@@ -1,41 +1,43 @@
 import React, { useEffect } from 'react';
-import { Box, Toolbar, AppBar, Typography } from '@mui/material';
-import Sidebar from './components/Sidebar';
 
-const App = () => {
+const useHandleTabClose = () => {
   useEffect(() => {
     const handleBeforeUnload = (event) => {
-      localStorage.clear();
-      // Optional: Show confirmation dialog
-      const confirmationMessage = 'Are you sure you want to leave?';
-      (event || window.event).returnValue = confirmationMessage; // Cross-browser compatibility
-      return confirmationMessage;
+      // Set a flag to indicate the tab is about to be closed
+      localStorage.setItem('isClosing', 'true');
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        if (localStorage.getItem('isClosing') === 'true') {
+          // Clear local storage if the tab is being closed
+          localStorage.removeItem('isClosing');
+          localStorage.clear();
+        }
+      } else if (document.visibilityState === 'visible') {
+        // Reset the flag when the tab becomes visible again
+        localStorage.removeItem('isClosing');
+      }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+};
+
+const App = () => {
+  useHandleTabClose();
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-        <Toolbar>
-          <Typography variant="h6" noWrap component="div">
-            My Application
-          </Typography>
-        </Toolbar>
-      </AppBar>
-      <Sidebar />
-      <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default', p: 3 }}>
-        <Toolbar />
-        <Typography paragraph>
-          This component will clear local storage when the browser tab or window is closed.
-        </Typography>
-      </Box>
-    </Box>
+    <div>
+      <h1>My React App</h1>
+      <p>This app handles closing local storage when the tab is closed.</p>
+    </div>
   );
 };
 
