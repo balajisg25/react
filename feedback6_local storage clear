@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppBar, Tabs, Tab, Box, IconButton, Tooltip, Menu, MenuItem, CircularProgress, Typography } from '@mui/material';
+import { AppBar, Tabs, Tab, Box, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import axios from 'axios';
@@ -9,48 +9,21 @@ import * as XLSX from 'xlsx';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
-const CircularProgressWithLabel = (props) => {
-  return (
-    <Box position="relative" display="inline-flex">
-      <CircularProgress variant="determinate" {...props} />
-      <Box
-        top={0}
-        left={0}
-        bottom={0}
-        right={0}
-        position="absolute"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-      >
-        <Typography variant="caption" component="div" color="textSecondary">
-          {`${Math.round(props.value)}%`}
-        </Typography>
-      </Box>
-    </Box>
-  );
-}
-
 const App = () => {
   const [tabValue, setTabValue] = useState('tab1');
   const [tableData, setTableData] = useState([]);
   const [columnDefs, setColumnDefs] = useState([]);
   const [filterApplied, setFilterApplied] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const [progress, setProgress] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const gridApiRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
       const cachedData = localStorage.getItem(`tableData_${tabValue}`);
       if (cachedData) {
         const parsedData = JSON.parse(cachedData);
         setTableData(parsedData);
         setDynamicColumns(parsedData);
-        setLoading(false);
       } else {
         try {
           const response = await axios.post('/api/data', { tabValue });
@@ -60,9 +33,6 @@ const App = () => {
           setDynamicColumns(responseData);
         } catch (error) {
           console.error('Error fetching data:', error);
-          setError('Failed to fetch data. Please try again later.');
-        } finally {
-          setLoading(false);
         }
       }
     };
@@ -75,7 +45,8 @@ const App = () => {
         headerName: key.charAt(0).toUpperCase() + key.slice(1),
         field: key,
         filter: true, // Enable filtering
-        sortable: true // Enable sorting
+        sortable: true, // Enable sorting
+        flex: 1, // Enable flexible resizing
       }));
       setColumnDefs(columns);
     }
@@ -147,21 +118,6 @@ const App = () => {
     handleMenuClose();
   };
 
-  useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      localStorage.clear(); // Clear local storage when the tab or browser is closed
-      // Optionally prevent default behavior or add a message
-      // event.preventDefault(); 
-      // event.returnValue = '';
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-
   return (
     <Box sx={{ width: '100%' }}>
       <AppBar position="static">
@@ -195,27 +151,19 @@ const App = () => {
             </Tooltip>
           )}
         </Box>
-        <CircularProgressWithLabel value={progress} /> {/* Add your circular progress here */}
       </Box>
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: 400 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <Box sx={{ height: 400, width: '100%' }} className="ag-theme-alpine">
-          <AgGridReact
-            rowData={tableData}
-            columnDefs={columnDefs}
-            onGridReady={params => {
-              gridApiRef.current = params.api;
-              params.api.sizeColumnsToFit();
-            }}
-            onFilterChanged={onFilterChanged}
-            pagination={true}
-            paginationPageSize={10}
-          />
-        </Box>
-      )}
+      <Box sx={{ height: 400, width: '100%' }} className="ag-theme-alpine">
+        <AgGridReact
+          rowData={tableData}
+          columnDefs={columnDefs}
+          onGridReady={params => {
+            gridApiRef.current = params.api;
+          }}
+          onFilterChanged={onFilterChanged}
+          pagination={true}
+          paginationPageSize={10}
+        />
+      </Box>
     </Box>
   );
 };
