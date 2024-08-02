@@ -9,20 +9,42 @@ import * as XLSX from 'xlsx';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
+const CircularProgressWithLabel = (props) => {
+  return (
+    <Box position="relative" display="inline-flex">
+      <CircularProgress variant="determinate" {...props} />
+      <Box
+        top={0}
+        left={0}
+        bottom={0}
+        right={0}
+        position="absolute"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Typography variant="caption" component="div" color="textSecondary">
+          {`${Math.round(props.value)}%`}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
 const App = () => {
   const [tabValue, setTabValue] = useState('tab1');
   const [tableData, setTableData] = useState([]);
   const [columnDefs, setColumnDefs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [filterApplied, setFilterApplied] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const gridApiRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      setError('');
       const cachedData = localStorage.getItem(`tableData_${tabValue}`);
       if (cachedData) {
         const parsedData = JSON.parse(cachedData);
@@ -36,10 +58,10 @@ const App = () => {
           localStorage.setItem(`tableData_${tabValue}`, JSON.stringify(responseData));
           setTableData(responseData);
           setDynamicColumns(responseData);
-          setLoading(false);
         } catch (error) {
           console.error('Error fetching data:', error);
-          setError('Failed to load data. Please try again.');
+          setError('Failed to fetch data. Please try again later.');
+        } finally {
           setLoading(false);
         }
       }
@@ -151,14 +173,11 @@ const App = () => {
             </Tooltip>
           )}
         </Box>
+        <CircularProgressWithLabel value={progress} /> {/* Add your circular progress here */}
       </Box>
       {loading ? (
         <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: 400 }}>
           <CircularProgress />
-        </Box>
-      ) : error ? (
-        <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: 400 }}>
-          <Typography color="error">{error}</Typography>
         </Box>
       ) : (
         <Box sx={{ height: 400, width: '100%' }} className="ag-theme-alpine">
