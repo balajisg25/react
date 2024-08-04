@@ -27,16 +27,27 @@ const TabsComponent = () => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      try {
-        const response = await axios.post('http://localhost:4000/getData', { tab: tabs[activeTab].value });
-        setRowData(response.data);
-      } catch (error) {
-        setError('Error fetching data');
-        console.error('Error fetching data:', error);
-      } finally {
+      
+      const tabValue = tabs[activeTab].value;
+      const storedData = localStorage.getItem(`data-${tabValue}`);
+
+      if (storedData) {
+        setRowData(JSON.parse(storedData));
         setLoading(false);
+      } else {
+        try {
+          const response = await axios.post('http://localhost:4000/getData', { tab: tabValue });
+          localStorage.setItem(`data-${tabValue}`, JSON.stringify(response.data));
+          setRowData(response.data);
+        } catch (error) {
+          setError('Error fetching data');
+          console.error('Error fetching data:', error);
+        } finally {
+          setLoading(false);
+        }
       }
     };
+
     fetchData();
   }, [activeTab]);
 
@@ -46,7 +57,7 @@ const TabsComponent = () => {
 
   return (
     <div>
-      <AppBar position="static" sx={{ width: '80%', margin: '0 auto' }}>
+      <AppBar position="static" sx={{ width: '100%', maxWidth: '1200px', margin: '0 auto' }}>
         <Tabs
           value={activeTab}
           onChange={handleTabChange}
