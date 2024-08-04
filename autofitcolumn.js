@@ -20,12 +20,20 @@ const GridExample = () => {
 
     useEffect(() => {
         if (gridRef.current) {
-            gridRef.current.api.sizeColumnsToFit();
+            autoSizeAllColumns();
         }
     }, [rowData]);
 
     const onFirstDataRendered = (params) => {
-        params.api.sizeColumnsToFit();
+        autoSizeAllColumns(params.columnApi);
+    };
+
+    const autoSizeAllColumns = (columnApi) => {
+        const allColumnIds = [];
+        columnApi.getAllColumns().forEach((column) => {
+            allColumnIds.push(column.getId());
+        });
+        columnApi.autoSizeColumns(allColumnIds, false);
     };
 
     return (
