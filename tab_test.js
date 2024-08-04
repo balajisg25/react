@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AppBar, Tabs, Tab, Box } from '@mui/material';
+import { AppBar, Tabs, Tab, Box, CircularProgress, Typography } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
@@ -8,6 +8,8 @@ import axios from 'axios';
 const TabsComponent = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [rowData, setRowData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const tabs = [
     { label: 'Tab 1', value: 'tab1' },
@@ -23,11 +25,16 @@ const TabsComponent = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const response = await axios.post('http://localhost:4000/getData', { tab: tabs[activeTab].value });
         setRowData(response.data);
       } catch (error) {
+        setError('Error fetching data');
         console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -39,20 +46,34 @@ const TabsComponent = () => {
 
   return (
     <div>
-      <AppBar position="static">
-        <Tabs value={activeTab} onChange={handleTabChange}>
+      <AppBar position="static" sx={{ width: '80%', margin: '0 auto' }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ flexWrap: 'nowrap' }}
+        >
           {tabs.map((tab, index) => (
             <Tab key={index} label={tab.label} />
           ))}
         </Tabs>
       </AppBar>
       <Box sx={{ padding: 2 }}>
-        <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
-          <AgGridReact
-            columnDefs={columnDefs}
-            rowData={rowData}>
-          </AgGridReact>
-        </div>
+        {loading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" height="400px">
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Typography color="error">{error}</Typography>
+        ) : (
+          <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
+            <AgGridReact
+              columnDefs={columnDefs}
+              rowData={rowData}>
+            </AgGridReact>
+          </div>
+        )}
       </Box>
     </div>
   );
