@@ -25,15 +25,12 @@ const GridExample = () => {
     }, [rowData]);
 
     const onFirstDataRendered = (params) => {
-        autoSizeAllColumns(params.columnApi);
+        autoSizeAllColumns();
     };
 
-    const autoSizeAllColumns = (columnApi) => {
-        const allColumnIds = [];
-        columnApi.getAllColumns().forEach((column) => {
-            allColumnIds.push(column.getId());
-        });
-        columnApi.autoSizeColumns(allColumnIds, false);
+    const autoSizeAllColumns = () => {
+        const allColumnIds = gridRef.current.columnApi.getAllColumns().map(col => col.getId());
+        gridRef.current.columnApi.autoSizeColumns(allColumnIds, false);
     };
 
     return (
