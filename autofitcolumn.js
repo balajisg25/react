@@ -1,8 +1,3 @@
-To ensure that the column width automatically adjusts to fit the table content size, you can make use of the `autoSizeAllColumns` method in the Ag-Grid API. You can trigger this method after the grid is ready and after the data is loaded. Additionally, you might want to use the `sizeColumnsToFit` method to ensure the columns fit within the grid's width.
-
-Here’s how you can update your component to ensure that the columns adjust to the content size automatically:
-
-```javascript
 import React, { useEffect, useState } from 'react';
 import { AppBar, Tabs, Tab, Box, Typography } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
@@ -62,11 +57,14 @@ const DynamicTabs = () => {
   };
 
   const autoSizeAllColumns = (api) => {
-    const allColumnIds = [];
-    api.getAllColumns().forEach((column) => {
-      allColumnIds.push(column.getId());
-    });
-    api.autoSizeColumns(allColumnIds);
+    const allColumns = api.getAllColumns();
+    if (allColumns && allColumns.length > 0) {
+      const allColumnIds = [];
+      allColumns.forEach((column) => {
+        allColumnIds.push(column.getId());
+      });
+      api.autoSizeColumns(allColumnIds);
+    }
   };
 
   useEffect(() => {
@@ -110,17 +108,3 @@ const DynamicTabs = () => {
 };
 
 export default DynamicTabs;
-```
-
-### Key Changes:
-
-1. **Auto-size Columns on Data Fetch**:
-   - Added `autoSizeAllColumns(gridApi)` call within `fetchData` to ensure columns are auto-sized when new data is fetched and column definitions are set.
-
-2. **Grid Ready Event**:
-   - Ensure `autoSizeAllColumns(params.api)` is called in `onGridReady` to auto-size columns when the grid is first initialized.
-
-3. **Auto-size on Row Data Change**:
-   - Added a `useEffect` hook to auto-size columns whenever `rowData` or `gridApi` changes.
-
-This ensures that columns are sized to fit their content whenever new data is loaded or when the grid is ready, providing a better user experience with dynamically sized columns.
