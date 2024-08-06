@@ -51,7 +51,7 @@ const DynamicTable = () => {
     setGridApi(params.api);
     setColumnApi(params.columnApi);
     params.api.paginationSetPageSize(paginationPageSize);
-    params.api.sizeColumnsToFit();
+    autoSizeAllColumns(params.columnApi);
   };
 
   const onPageSizeChanged = useCallback((event) => {
@@ -145,6 +145,13 @@ const DynamicTable = () => {
     }
   }, [gridApi]);
 
+  const autoSizeAllColumns = (columnApi) => {
+    if (columnApi) {
+      const allColumnIds = columnApi.getAllColumns().map(column => column.getId());
+      columnApi.autoSizeColumns(allColumnIds);
+    }
+  };
+
   const applyCustomFilterIconColor = () => {
     if (gridApi && columnApi) {
       const allColumns = columnApi.getAllColumns();
@@ -174,10 +181,10 @@ const DynamicTable = () => {
   }, [gridApi, columnApi]);
 
   useEffect(() => {
-    if (gridApi) {
-      gridApi.sizeColumnsToFit();
+    if (gridApi && columnApi) {
+      autoSizeAllColumns(columnApi);
     }
-  }, [rowData, columnDefs, gridApi]);
+  }, [rowData, columnDefs, gridApi, columnApi]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
@@ -231,7 +238,7 @@ const DynamicTable = () => {
             if (gridApi && columnApi) {
               gridApi.paginationGoToFirstPage();
               applyCustomFilterIconColor();
-              gridApi.sizeColumnsToFit();
+              autoSizeAllColumns(columnApi);
             }
           }}
           defaultColDef={{
