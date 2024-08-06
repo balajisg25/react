@@ -15,7 +15,7 @@ const DynamicTable = () => {
   const [columnDefs, setColumnDefs] = useState([]);
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const [gridApi, setGridApi] = useState(null);
-  const [columnApi, setColumnApi] = useState(null); // Add columnApi state
+  const [columnApi, setColumnApi] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,9 +49,9 @@ const DynamicTable = () => {
 
   const onGridReady = (params) => {
     setGridApi(params.api);
-    setColumnApi(params.columnApi); // Set columnApi
+    setColumnApi(params.columnApi);
     params.api.paginationSetPageSize(paginationPageSize);
-    autoSizeAllColumns(params.columnApi); // Auto-size columns when the grid is ready
+    autoSizeAllColumns(params.columnApi);
   };
 
   const onPageSizeChanged = useCallback((event) => {
@@ -83,31 +83,43 @@ const DynamicTable = () => {
   };
 
   const exportToCSV = () => {
-    const data = getFilteredData();
-    const csv = Papa.unparse(data);
-    const formattedDate = getFormattedDate();
-    const filename = `data_${formattedDate}.csv`;
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, filename);
+    try {
+      const data = getFilteredData();
+      const csv = Papa.unparse(data);
+      const formattedDate = getFormattedDate();
+      const filename = `data_${formattedDate}.csv`;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      saveAs(blob, filename);
+    } catch (error) {
+      console.error('Error exporting to CSV:', error);
+    }
   };
 
   const exportToExcel = () => {
-    const data = getFilteredData();
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Data');
-    const formattedDate = getFormattedDate();
-    const filename = `data_${formattedDate}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    try {
+      const data = getFilteredData();
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Data');
+      const formattedDate = getFormattedDate();
+      const filename = `data_${formattedDate}.xlsx`;
+      XLSX.writeFile(wb, filename);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+    }
   };
 
   const exportToJson = () => {
-    const data = getFilteredData();
-    const json = JSON.stringify(data, null, 2);
-    const formattedDate = getFormattedDate();
-    const filename = `data_${formattedDate}.json`;
-    const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
-    saveAs(blob, filename);
+    try {
+      const data = getFilteredData();
+      const json = JSON.stringify(data, null, 2);
+      const formattedDate = getFormattedDate();
+      const filename = `data_${formattedDate}.json`;
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+      saveAs(blob, filename);
+    } catch (error) {
+      console.error('Error exporting to JSON:', error);
+    }
   };
 
   const handleExport = (format) => {
@@ -127,19 +139,21 @@ const DynamicTable = () => {
     setAnchorEl(null);
   };
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     if (gridApi) {
       gridApi.setFilterModel(null);
     }
-  };
+  }, [gridApi]);
 
   const autoSizeAllColumns = (columnApi) => {
-    const allColumnIds = columnApi.getAllColumns().map(column => column.getId());
-    columnApi.autoSizeColumns(allColumnIds);
+    if (columnApi) {
+      const allColumnIds = columnApi.getAllColumns().map(column => column.getId());
+      columnApi.autoSizeColumns(allColumnIds);
+    }
   };
 
   const applyCustomFilterIconColor = () => {
-    if (gridApi) {
+    if (gridApi && columnApi) {
       const allColumns = columnApi.getAllColumns();
       allColumns.forEach(column => {
         const filterComponent = gridApi.getFilterInstance(column.getColId());
@@ -157,7 +171,7 @@ const DynamicTable = () => {
   };
 
   useEffect(() => {
-    if (columnApi) {
+    if (gridApi && columnApi) {
       const applyColor = () => applyCustomFilterIconColor();
       gridApi.addEventListener('filterChanged', applyColor);
       return () => {
@@ -218,7 +232,7 @@ const DynamicTable = () => {
             if (gridApi && columnApi) {
               gridApi.paginationGoToFirstPage();
               applyCustomFilterIconColor();
-              autoSizeAllColumns(columnApi); // Adjust column sizes when filters are applied
+              autoSizeAllColumns(columnApi);
             }
           }}
           defaultColDef={{
