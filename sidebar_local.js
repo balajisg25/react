@@ -21,6 +21,8 @@ const App = () => {
     localStorage.setItem('isSidebarOpen', newSidebarState);
   };
 
+  const currentYear = new Date().getFullYear();
+
   return (
     <div>
       <button onClick={toggleSidebar}>
@@ -97,7 +99,7 @@ const App = () => {
             </Tooltip>
           </Menu>
           <div style={{ marginTop: 'auto', padding: '10px', textAlign: 'center', fontSize: '12px', color: '#aaa' }}>
-            © 2024 AdminMart. All rights reserved.
+            © {currentYear} AdminMart. All rights reserved.
           </div>
         </Sidebar>
       )}
