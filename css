@@ -1,17 +1,29 @@
-/* custom-styles.css */
+/* Custom CSS for a Compact Grid Style */
+
+/* Adjust header cell styles */
 .compact-grid .ag-header-cell {
   padding: 4px;
+  height: 30px; /* Adjust header height */
+  line-height: 30px; /* Center text vertically within the header */
 }
 
+/* Adjust header row height */
+.compact-grid .ag-header-row {
+  height: 30px !important; /* Ensure header row height is consistent */
+}
+
+/* Adjust cell styles */
 .compact-grid .ag-cell {
   padding: 2px;
   font-size: 12px; /* Adjust font size for a more compact look */
 }
 
+/* Adjust row height */
 .compact-grid .ag-row {
   height: 30px !important; /* Ensure row height is consistent */
 }
 
+/* Ensure minimum row height is consistent in the Alpine theme */
 .ag-theme-alpine .ag-row {
   min-height: 30px; /* Ensure row height is consistent in the theme */
 }
