@@ -1,41 +1,22 @@
-// HomePage.js
 import React from 'react';
-import { Container, Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
+import backgroundImage from './assets/background.jpg'; // Adjust the path as necessary
 
-const HomePage = () => {
+const BackgroundImageComponent = () => {
   return (
-    <Container
-      maxWidth="false"
+    <Box
       sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: '100%',
         height: '100vh',
-        padding: 0,
+        backgroundImage: `url(${backgroundImage})`, // Use the imported image
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
       }}
     >
-      <Box
-        sx={{
-          width: '100%',
-          height: '100%',
-          background: 'url(/images/home-bg.jpg) no-repeat center center',
-          backgroundSize: 'cover',
-        }}
-      >
-        <Typography
-          variant="h1"
-          sx={{
-            color: '#fff',
-            textAlign: 'center',
-            marginTop: '20px',
-            fontSize: '3rem',
-          }}
-        >
-          Welcome to Our Website
-        </Typography>
-      </Box>
-    </Container>
+      {/* Your content here */}
+    </Box>
   );
 };
 
-export default HomePage;
+export default BackgroundImageComponent;
