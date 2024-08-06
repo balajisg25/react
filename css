@@ -1,0 +1,17 @@
+/* custom-styles.css */
+.compact-grid .ag-header-cell {
+  padding: 4px;
+}
+
+.compact-grid .ag-cell {
+  padding: 2px;
+  font-size: 12px; /* Adjust font size for a more compact look */
+}
+
+.compact-grid .ag-row {
+  height: 30px !important; /* Ensure row height is consistent */
+}
+
+.ag-theme-alpine .ag-row {
+  min-height: 30px; /* Ensure row height is consistent in the theme */
+}
