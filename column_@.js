@@ -15,6 +15,7 @@ const DynamicTable = () => {
   const [columnDefs, setColumnDefs] = useState([]);
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const [gridApi, setGridApi] = useState(null);
+  const [columnApi, setColumnApi] = useState(null); // Add columnApi state
   const [anchorEl, setAnchorEl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -48,8 +49,9 @@ const DynamicTable = () => {
 
   const onGridReady = (params) => {
     setGridApi(params.api);
+    setColumnApi(params.columnApi); // Set columnApi
     params.api.paginationSetPageSize(paginationPageSize);
-    autoSizeAllColumns(params.api); // Auto-size columns when the grid is ready
+    autoSizeAllColumns(params.columnApi); // Auto-size columns when the grid is ready
   };
 
   const onPageSizeChanged = useCallback((event) => {
@@ -131,18 +133,18 @@ const DynamicTable = () => {
     }
   };
 
-  const autoSizeAllColumns = (api) => {
-    const allColumnIds = api.getAllColumns().map(column => column.getId());
-    api.autoSizeColumns(allColumnIds);
+  const autoSizeAllColumns = (columnApi) => {
+    const allColumnIds = columnApi.getAllColumns().map(column => column.getId());
+    columnApi.autoSizeColumns(allColumnIds);
   };
 
   const applyCustomFilterIconColor = () => {
     if (gridApi) {
-      const allColumns = gridApi.getAllColumns();
+      const allColumns = columnApi.getAllColumns();
       allColumns.forEach(column => {
         const filterComponent = gridApi.getFilterInstance(column.getColId());
         if (filterComponent && filterComponent.isFilterActive()) {
-          const headerElement = gridApi.getHeaderCellElement(column);
+          const headerElement = columnApi.getHeaderCellElement(column);
           if (headerElement) {
             const filterIcon = headerElement.querySelector('.ag-filter-icon');
             if (filterIcon) {
@@ -155,14 +157,14 @@ const DynamicTable = () => {
   };
 
   useEffect(() => {
-    if (gridApi) {
+    if (columnApi) {
       const applyColor = () => applyCustomFilterIconColor();
       gridApi.addEventListener('filterChanged', applyColor);
       return () => {
         gridApi.removeEventListener('filterChanged', applyColor);
       };
     }
-  }, [gridApi]);
+  }, [gridApi, columnApi]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
@@ -213,10 +215,10 @@ const DynamicTable = () => {
           paginationPageSize={paginationPageSize}
           onGridReady={onGridReady}
           onFilterChanged={() => {
-            if (gridApi) {
+            if (gridApi && columnApi) {
               gridApi.paginationGoToFirstPage();
               applyCustomFilterIconColor();
-              autoSizeAllColumns(gridApi); // Adjust column sizes when filters are applied
+              autoSizeAllColumns(columnApi); // Adjust column sizes when filters are applied
             }
           }}
           defaultColDef={{
