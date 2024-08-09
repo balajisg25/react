@@ -1,0 +1,21 @@
+import React from 'react';
+import { Box } from '@mui/material';
+
+function ResponsiveImage() {
+  return (
+    <Box
+      component="img"
+      src="your-image.jpg"
+      alt="Description of Image"
+      sx={{
+        width: '100%',       // Image takes up 100% of the container's width
+        maxWidth: '600px',   // Optional max-width to limit the image size
+        height: 'auto',      // Maintains the aspect ratio
+        display: 'block',    // Remove the default inline behavior
+        margin: '0 auto',    // Centers the image horizontally
+      }}
+    />
+  );
+}
+
+export default ResponsiveImage;
