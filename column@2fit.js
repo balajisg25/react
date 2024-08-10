@@ -164,23 +164,19 @@ const DynamicTable = () => {
   }, [gridApi]);
 
   // Apply custom color to active filter icons
-  const applyCustomFilterIconColor = () => {
-    if (gridApi && columnApi) {
-      const allColumns = columnApi.getAllColumns();
-      allColumns.forEach(column => {
-        const filterComponent = gridApi.getFilterInstance(column.getColId());
-        if (filterComponent && filterComponent.isFilterActive()) {
-          const headerElement = columnApi.getHeaderCellElement(column);
-          if (headerElement) {
-            const filterIcon = headerElement.querySelector('.ag-filter-icon');
-            if (filterIcon) {
-              filterIcon.style.color = 'yellow';
-            }
-          }
+  const applyCustomFilterIconColor = useCallback(() => {
+    if (columnApi) {
+      columnApi.getAllColumns().forEach(column => {
+        const colDef = column.getColDef();
+        if (columnApi.getColumnState().find(col => col.colId === column.getColId()).filterActive) {
+          colDef.headerClass = 'filter-active';
+        } else {
+          colDef.headerClass = '';
         }
       });
+      columnApi.refreshHeader();
     }
-  };
+  }, [columnApi]);
 
   // Event listener for filter changes
   useEffect(() => {
@@ -191,7 +187,7 @@ const DynamicTable = () => {
         gridApi.removeEventListener('filterChanged', applyColor);
       };
     }
-  }, [gridApi, columnApi]);
+  }, [gridApi, columnApi, applyCustomFilterIconColor]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
