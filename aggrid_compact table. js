@@ -1,32 +1,63 @@
-/* Compact density styles for AG Grid */
-.ag-theme-alpine .ag-cell {
-  padding-top: 2px;
-  padding-bottom: 2px;
+/* Custom Styles for the DynamicTable component */
+
+/* Set a compact style for the ag-Grid table */
+.ag-theme-alpine.compact-table {
+  font-size: 12px; /* Smaller font size for a more compact look */
 }
 
-.ag-theme-alpine .ag-row {
-  min-height: 25px;
+.ag-theme-alpine.compact-table .ag-header-cell {
+  padding: 4px 8px; /* Reduce padding for header cells */
 }
 
-.ag-theme-alpine .ag-header-cell {
-  padding-top: 2px;
-  padding-bottom: 2px;
+.ag-theme-alpine.compact-table .ag-cell {
+  padding: 4px 8px; /* Reduce padding for regular cells */
+  line-height: 20px; /* Ensure text fits well in the smaller cells */
 }
 
-.ag-theme-alpine .ag-header {
-  min-height: 25px;
+.ag-theme-alpine.compact-table .ag-header {
+  height: 32px; /* Adjust header height to be compact */
 }
 
-.ag-theme-alpine .ag-cell-wrapper {
-  line-height: 25px;
+.ag-theme-alpine.compact-table .ag-row {
+  min-height: 25px; /* Adjust row height to be compact */
 }
 
-.ag-theme-alpine .ag-header-cell-label {
-  line-height: 25px;
+.ag-theme-alpine.compact-table .ag-paging-panel {
+  padding: 4px; /* Compact the pagination controls */
+}
+
+.ag-theme-alpine.compact-table .ag-row-hover {
+  background-color: #f0f0f0; /* Light background for hovered rows */
+}
+
+.ag-theme-alpine.compact-table .ag-cell-focus {
+  border-color: #3f51b5; /* Focused cell border color */
+}
+
+/* Style for the export icon and menu items */
+#export-menu .MuiMenuItem-root {
+  font-size: 14px; /* Slightly smaller font for export menu items */
+}
+
+#export-menu .MuiSvgIcon-root {
+  font-size: 18px; /* Adjust icon size for better alignment */
+}
+
+/* Optional: Add a custom scrollbar style */
+.ag-theme-alpine.compact-table ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ag-theme-alpine.compact-table ::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 4px;
+}
+
+.ag-theme-alpine.compact-table ::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
 }
 
 
-// code
 
 import React, { useEffect, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
@@ -36,7 +67,7 @@ import axios from 'axios';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
+import { IconButton, Menu, MenuItem, Tooltip, CircularProgress, Typography } from '@mui/material';
 import { Download as DownloadIcon, FileCsv as FileCsvIcon, FileExcel as FileExcelIcon, FileCopy as FileCopyIcon } from '@mui/icons-material';
 import './custom-styles.css'; // Import the custom CSS file
 
@@ -46,6 +77,8 @@ const DynamicTable = () => {
   const [paginationPageSize, setPaginationPageSize] = useState(10);
   const [gridApi, setGridApi] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const open = Boolean(anchorEl);
 
   useEffect(() => {
@@ -61,6 +94,12 @@ const DynamicTable = () => {
         }));
 
         setColumnDefs(columns);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error("Error fetching data:", error);
+        setError('Failed to load data. Please try again later.');
+        setLoading(false);
       });
   }, []);
 
@@ -74,7 +113,16 @@ const DynamicTable = () => {
     setPaginationPageSize(newPageSize);
     if (gridApi) {
       gridApi.paginationSetPageSize(newPageSize);
+      updateTableHeight(newPageSize);
     }
+  };
+
+  const updateTableHeight = (pageSize) => {
+    const rowHeight = 25; // Adjust based on your row height
+    const headerHeight = 32; // Adjust based on your header height
+    const paginationControlsHeight = 52; // Adjust based on your pagination controls height
+    const totalHeight = (pageSize * rowHeight) + headerHeight + paginationControlsHeight;
+    document.querySelector('.ag-theme-alpine').style.height = `${totalHeight}px`;
   };
 
   const getFilteredData = () => {
@@ -142,6 +190,14 @@ const DynamicTable = () => {
     setAnchorEl(null);
   };
 
+  if (loading) {
+    return <CircularProgress />;
+  }
+
+  if (error) {
+    return <Typography color="error">{error}</Typography>;
+  }
+
   return (
     <div>
       <Tooltip title="Export Data">
@@ -173,7 +229,7 @@ const DynamicTable = () => {
           Export to JSON
         </MenuItem>
       </Menu>
-      <div className="ag-theme-alpine compact-grid" style={{ height: 'calc(100vh - 150px)', width: '100%' }}>
+      <div className="ag-theme-alpine compact-table" style={{ width: '100%' }}>
         <AgGridReact
           rowData={rowData}
           columnDefs={columnDefs}
@@ -190,6 +246,9 @@ const DynamicTable = () => {
           }}
           suppressClipboardPaste={false}
           enableCellTextSelection={true} // Enable text selection for copy-paste
+          domLayout='autoHeight' // Auto height based on content
+          rowHeight={25} // Set a compact row height
+          headerHeight={32} // Set a compact header height
         />
       </div>
       <div style={{ marginTop: '10px' }}>
@@ -216,4 +275,3 @@ const DynamicTable = () => {
 };
 
 export default DynamicTable;
-
