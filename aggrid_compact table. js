@@ -59,7 +59,7 @@
 
 
 
-import React, { useEffect, useState } from 'react';
+ import React, { useEffect, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
@@ -106,6 +106,12 @@ const DynamicTable = () => {
   const onGridReady = (params) => {
     setGridApi(params.api);
     params.api.paginationSetPageSize(paginationPageSize);
+    autoSizeAllColumns(params.columnApi); // Auto-size columns based on their content
+  };
+
+  const autoSizeAllColumns = (columnApi) => {
+    const allColumnIds = columnApi.getAllColumns().map(column => column.getId());
+    columnApi.autoSizeColumns(allColumnIds); // Automatically size all columns based on content
   };
 
   const onPageSizeChanged = (event) => {
@@ -236,7 +242,10 @@ const DynamicTable = () => {
           pagination
           paginationPageSize={paginationPageSize}
           onGridReady={onGridReady}
-          onFilterChanged={() => gridApi && gridApi.paginationGoToFirstPage()} // Reset to first page when filtering
+          onFilterChanged={() => {
+            gridApi && gridApi.paginationGoToFirstPage();
+            gridApi && autoSizeAllColumns(gridApi.columnApi); // Refit columns after filtering
+          }} 
           defaultColDef={{
             resizable: true,
             sortable: true,
