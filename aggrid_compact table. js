@@ -521,3 +521,138 @@ const DynamicTable = () => {
 };
 
 export default DynamicTable;
+
+
+//based on size
+
+import React, { useEffect, useState } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+import axios from 'axios';
+import { IconButton, Tooltip, CircularProgress, Typography } from '@mui/material';
+import { Download as DownloadIcon } from '@mui/icons-material';
+import './custom-styles.css'; // Import the custom CSS file
+
+const DynamicTable = () => {
+  const [rowData, setRowData] = useState([]);
+  const [columnDefs, setColumnDefs] = useState([]);
+  const [paginationPageSize, setPaginationPageSize] = useState(10);
+  const [gridApi, setGridApi] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    axios.get('https://jsonplaceholder.typicode.com/users')
+      .then(response => {
+        const fetchedData = response.data;
+        setRowData(fetchedData);
+
+        // Define column definitions
+        const columns = Object.keys(fetchedData[0] || {}).map((key, index) => ({
+          headerName: key || `Column ${index}`,
+          field: key || `column_${index}`, // Field must be unique
+          filter: true, // Enable filtering for this column
+          width: headerNameToWidth[key] || 150, // Apply specific width if defined or default width
+        }));
+
+        setColumnDefs(columns);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error("Error fetching data:", error);
+        setError('Failed to load data. Please try again later.');
+        setLoading(false);
+      });
+  }, []);
+
+  const headerNameToWidth = {
+    'Name': 200,
+    'Username': 150,
+    'Email': 250,
+    // Add other columns with specific widths if needed
+  };
+
+  const onGridReady = (params) => {
+    setGridApi(params.api);
+    params.api.paginationSetPageSize(paginationPageSize);
+  };
+
+  const onPageSizeChanged = (event) => {
+    const newPageSize = Number(event.target.value);
+    setPaginationPageSize(newPageSize);
+    if (gridApi) {
+      gridApi.paginationSetPageSize(newPageSize);
+      updateTableHeight(newPageSize);
+    }
+  };
+
+  const updateTableHeight = (pageSize) => {
+    const rowHeight = 25; // Adjust based on your row height
+    const headerHeight = 32; // Adjust based on your header height
+    const paginationControlsHeight = 52; // Adjust based on your pagination controls height
+    const totalHeight = (pageSize * rowHeight) + headerHeight + paginationControlsHeight;
+    document.querySelector('.ag-theme-alpine').style.height = `${totalHeight}px`;
+  };
+
+  if (loading) {
+    return <CircularProgress />;
+  }
+
+  if (error) {
+    return <Typography color="error">{error}</Typography>;
+  }
+
+  return (
+    <div>
+      <Tooltip title="Export Data">
+        <IconButton color="primary">
+          <DownloadIcon />
+        </IconButton>
+      </Tooltip>
+      <div className="ag-theme-alpine compact-table" style={{ width: '100%' }}>
+        <AgGridReact
+          rowData={rowData}
+          columnDefs={columnDefs}
+          pagination
+          paginationPageSize={paginationPageSize}
+          onGridReady={onGridReady}
+          defaultColDef={{
+            resizable: true,
+            sortable: true,
+            filter: true,
+            editable: true,
+            clipboard: true, // Enable clipboard support
+            width: 150, // Default column width
+          }}
+          suppressClipboardPaste={false}
+          enableCellTextSelection={true} // Enable text selection for copy-paste
+          domLayout='autoHeight' // Auto height based on content
+          rowHeight={25} // Set a compact row height
+          headerHeight={32} // Set a compact header height
+        />
+      </div>
+      <div style={{ marginTop: '10px' }}>
+        <span>
+          Page{' '}
+          <strong>
+            {gridApi ? gridApi.paginationGetCurrentPage() + 1 : 1} of {gridApi ? gridApi.paginationGetTotalPages() : 1}
+          </strong>
+        </span>
+        <select
+          value={paginationPageSize}
+          onChange={onPageSizeChanged}
+          style={{ marginLeft: '10px' }}
+        >
+          {[10, 20, 30, 40, 50].map(pageSize => (
+            <option key={pageSize} value={pageSize}>
+              Show {pageSize}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+};
+
+export default DynamicTable;
