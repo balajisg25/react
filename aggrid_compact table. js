@@ -656,3 +656,166 @@ const DynamicTable = () => {
 };
 
 export default DynamicTable;
+
+
+20/08
+
+import React, { useEffect, useState } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+import axios from 'axios';
+import { IconButton, Tooltip, CircularProgress, Typography } from '@mui/material';
+import { Download as DownloadIcon } from '@mui/icons-material';
+import './custom-styles.css'; // Import the custom CSS file
+
+const DynamicTable = () => {
+  const [rowData, setRowData] = useState([]);
+  const [columnDefs, setColumnDefs] = useState([]);
+  const [paginationPageSize, setPaginationPageSize] = useState(10);
+  const [gridApi, setGridApi] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    axios.get('https://jsonplaceholder.typicode.com/users')
+      .then(response => {
+        const fetchedData = response.data;
+        setRowData(fetchedData);
+
+        const headerNameToWidth = {
+          'Name': 200,
+          'Username': 150,
+          'Email': 250,
+        };
+
+        const columns = Object.keys(fetchedData[0] || {}).map((key, index) => ({
+          headerName: key || `Column ${index}`,
+          field: key || `column_${index}`, // Field must be unique
+          filter: true, // Enable filtering for this column
+          width: headerNameToWidth[key] || 150, // Apply specific width if defined or default width
+        }));
+
+        setColumnDefs(columns);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error("Error fetching data:", error);
+        setError('Failed to load data. Please try again later.');
+        setLoading(false);
+      });
+  }, []);
+
+  const onGridReady = (params) => {
+    setGridApi(params.api);
+    params.api.paginationSetPageSize(paginationPageSize);
+  };
+
+  const onPageSizeChanged = (event) => {
+    const newPageSize = Number(event.target.value);
+    setPaginationPageSize(newPageSize);
+    if (gridApi) {
+      gridApi.paginationSetPageSize(newPageSize);
+    }
+  };
+
+  if (loading) {
+    return <CircularProgress />;
+  }
+
+  if (error) {
+    return <Typography color="error">{error}</Typography>;
+  }
+
+  return (
+    <div className="ag-grid-container">
+      <Tooltip title="Export Data">
+        <IconButton color="primary" /* onClick={exportData} */>
+          <DownloadIcon />
+        </IconButton>
+      </Tooltip>
+      <div className="ag-theme-alpine" style={{ height: '500px', width: '100%' }}>
+        <AgGridReact
+          rowData={rowData}
+          columnDefs={columnDefs}
+          pagination
+          paginationPageSize={paginationPageSize}
+          onGridReady={onGridReady}
+          defaultColDef={{
+            resizable: true,
+            sortable: true,
+            filter: true,
+            editable: true,
+            clipboard: true, // Enable clipboard support
+            width: 150, // Default column width
+            cellClassRules: {
+              'filtered-column': (params) => {
+                const filterModel = params.api.getFilterModel();
+                return !!filterModel[params.colDef.field];
+              },
+            },
+          }}
+          suppressClipboardPaste={false}
+          enableCellTextSelection={true} // Enable text selection for copy-paste
+        />
+      </div>
+      <div style={{ marginTop: '10px' }}>
+        <span>
+          Page{' '}
+          <strong>
+            {gridApi ? gridApi.paginationGetCurrentPage() + 1 : 1} of {gridApi ? gridApi.paginationGetTotalPages() : 1}
+          </strong>
+        </span>
+        <select
+          value={paginationPageSize}
+          onChange={onPageSizeChanged}
+          style={{ marginLeft: '10px' }}
+        >
+          {[10, 20, 30, 40, 50].map(pageSize => (
+            <option key={pageSize} value={pageSize}>
+              Show {pageSize}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+};
+
+export default DynamicTable;
+
+
+/* custom-styles.css */
+
+/* Style for the container holding the grid */
+.ag-grid-container {
+  padding: 10px;
+}
+
+/* Highlighted filtered column cells */
+.filtered-column {
+  background-color: #ffeb3b; /* Yellow background for visibility */
+}
+
+/* Optional: Customize grid header */
+.ag-theme-alpine .ag-header-cell-label {
+  font-weight: bold;
+  color: #333;
+}
+
+/* Optional: Customize grid rows */
+.ag-theme-alpine .ag-row {
+  font-size: 14px;
+  color: #555;
+}
+
+/* Optional: Style for the export button */
+.ag-grid-container .MuiIconButton-root {
+  margin-bottom: 10px;
+}
+
+/* Optional: Additional styles for pagination controls */
+.ag-grid-container select {
+  padding: 5px;
+  font-size: 14px;
+}
