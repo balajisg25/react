@@ -819,3 +819,35 @@ export default DynamicTable;
   padding: 5px;
   font-size: 14px;
 }
+
+
+<AgGridReact
+  rowData={rowData}
+  columnDefs={columnDefs}
+  pagination
+  paginationPageSize={paginationPageSize}
+  onGridReady={onGridReady}
+  defaultColDef={{
+    resizable: true,
+    sortable: true,
+    filter: true,
+    editable: true,
+    clipboard: true,
+    width: 150,
+    cellClassRules: {
+      'filtered-column': (params) => {
+        const filterModel = params.api.getFilterModel();
+        return !!filterModel[params.colDef.field];
+      },
+    },
+  }}
+  suppressClipboardPaste={false}
+  enableCellTextSelection={true}
+/>
+
+
+/* custom-styles.css */
+
+.ag-theme-alpine .filtered-column {
+  background-color: #ffeb3b !important;
+}
