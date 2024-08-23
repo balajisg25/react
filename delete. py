@@ -36,3 +36,28 @@ def write_subfolder_sizes_to_file(directory, output_file):
 directory = '/path/to/your/folder'
 output_file = '/path/to/output/file.txt'
 write_subfolder_sizes_to_file(directory, output_file)
+
+
+import os
+
+def get_folder_size(folder):
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(folder):
+        for filename in filenames:
+            file_path = os.path.join(dirpath, filename)
+            if os.path.isfile(file_path):
+                total_size += os.path.getsize(file_path)
+    return total_size
+
+def write_subfolder_sizes_to_file(directory, output_file):
+    with open(output_file, 'w') as f:
+        for root, dirs, files in os.walk(directory):
+            for folder_name in dirs:
+                folder_path = os.path.join(root, folder_name)
+                folder_size = get_folder_size(folder_path)
+                f.write(f"{folder_path}: {folder_size} bytes\n")
+                print(f"{folder_path}: {folder_size} bytes")
+
+directory = '/path/to/your/folder'
+output_file = '/path/to/output/file.txt'
+write_subfolder_sizes_to_file(directory, output_file)
