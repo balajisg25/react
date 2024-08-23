@@ -1,20 +1,12 @@
 import os
 
 def delete_txt_files(directory):
-    # Walk through each directory and subdirectory
     for root, dirs, files in os.walk(directory):
         for file in files:
-            # Check if the file has a .txt extension
             if file.endswith('.txt'):
-                # Get the full path of the file
                 file_path = os.path.join(root, file)
-                
-                # Delete the file
                 os.remove(file_path)
                 print(f'Deleted: {file_path}')
 
-# Define the directory in the outer scope
 directory = '/path/to/your/folder'
-
-# Call the function with the directory from outer scope
 delete_txt_files(directory)
