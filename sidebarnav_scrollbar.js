@@ -426,3 +426,258 @@ const App = () => {
 };
 
 export default App;
+
+
+2408
+
+import React, { useState } from "react";
+import { Sidebar, Menu, MenuItem, Submenu } from "react-mui-sidebar";
+import { Tooltip, Divider } from "@mui/material";
+import HomeIcon from "@mui/icons-material/Home";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import ChatIcon from "@mui/icons-material/Chat";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import ArticleIcon from "@mui/icons-material/Article";
+import InfoIcon from "@mui/icons-material/Info";
+import ChipIcon from "@mui/icons-material/Chip";
+import LogoutIcon from "@mui/icons-material/Logout";
+import logo from "./assets/logo.png"; // Adjust the path as needed
+
+const App = () => {
+  const initialSidebarState = localStorage.getItem("isSidebarOpen") !== "false";
+  const [isSidebarOpen, setIsSidebarOpen] = useState(initialSidebarState);
+  const [selectedItem, setSelectedItem] = useState("");
+
+  const toggleSidebar = () => {
+    const newSidebarState = !isSidebarOpen;
+    setIsSidebarOpen(newSidebarState);
+    localStorage.setItem("isSidebarOpen", newSidebarState);
+  };
+
+  const handleMenuItemClick = (item) => {
+    setSelectedItem(item);
+  };
+
+  const currentYear = new Date().getFullYear();
+  const isUserLoggedIn = localStorage.getItem("userSession") !== null;
+
+  const handleLogout = () => {
+    localStorage.removeItem("userSession");
+    window.location.reload();
+  };
+
+  return (
+    <div style={{ display: "flex" }}>
+      <Sidebar
+        width={isSidebarOpen ? "270px" : "80px"}
+        style={{
+          height: "100vh",
+          overflowY: "auto",
+          scrollbarWidth: "thin",
+          scrollbarColor: "#888 #f0f0f0",
+          transition: "width 0.3s",
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#2c3e50", // Dark sidebar background color
+          color: "#ecf0f1", // Light text color
+        }}
+      >
+        <Tooltip title="Toggle Sidebar" placement="right">
+          <div
+            onClick={toggleSidebar}
+            style={{
+              cursor: "pointer",
+              textAlign: "center",
+              padding: "20px 0",
+            }}
+          >
+            <img
+              src={logo}
+              alt="AdminMart Logo"
+              style={{
+                maxWidth: isSidebarOpen ? "150px" : "50px",
+                transition: "max-width 0.3s",
+              }}
+            />
+          </div>
+        </Tooltip>
+
+        <div style={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
+          <Menu subHeading={isSidebarOpen ? "HOME" : ""}>
+            <Tooltip title="Home" placement="right" arrow>
+              <MenuItem
+                link="/"
+                badge="true"
+                icon={<HomeIcon style={{ color: "#ecf0f1" }} />}
+                style={{
+                  backgroundColor: selectedItem === "Home" ? "#34495e" : "transparent",
+                  color: "#ecf0f1",
+                }}
+                onClick={() => handleMenuItemClick("Home")}
+              >
+                {isSidebarOpen && "Modern"}
+              </MenuItem>
+            </Tooltip>
+            <Tooltip title="eCommerce" placement="right" arrow>
+              <MenuItem
+                icon={<ShoppingCartIcon style={{ color: "#ecf0f1" }} />}
+                style={{
+                  backgroundColor: selectedItem === "eCommerce" ? "#34495e" : "transparent",
+                  color: "#ecf0f1",
+                }}
+                onClick={() => handleMenuItemClick("eCommerce")}
+              >
+                {isSidebarOpen && "eCommerce"}
+              </MenuItem>
+            </Tooltip>
+            <Tooltip title="Analytical" placement="right" arrow>
+              <MenuItem
+                icon={<AssessmentIcon style={{ color: "#ecf0f1" }} />}
+                style={{
+                  backgroundColor: selectedItem === "Analytical" ? "#34495e" : "transparent",
+                  color: "#ecf0f1",
+                }}
+                onClick={() => handleMenuItemClick("Analytical")}
+              >
+                {isSidebarOpen && "Analytical"}
+              </MenuItem>
+            </Tooltip>
+          </Menu>
+
+          <Menu subHeading={isSidebarOpen ? "APPS" : ""}>
+            <Tooltip title="Chat" placement="right" arrow>
+              <MenuItem
+                icon={<ChatIcon style={{ color: "#ecf0f1" }} />}
+                style={{
+                  backgroundColor: selectedItem === "Chat" ? "#34495e" : "transparent",
+                  color: "#ecf0f1",
+                }}
+                onClick={() => handleMenuItemClick("Chat")}
+              >
+                {isSidebarOpen && "Chat"}
+              </MenuItem>
+            </Tooltip>
+            <Tooltip title="Calendar" placement="right" arrow>
+              <MenuItem
+                icon={<CalendarTodayIcon style={{ color: "#ecf0f1" }} />}
+                style={{
+                  backgroundColor: selectedItem === "Calendar" ? "#34495e" : "transparent",
+                  color: "#ecf0f1",
+                }}
+                onClick={() => handleMenuItemClick("Calendar")}
+              >
+                {isSidebarOpen && "Calendar"}
+              </MenuItem>
+            </Tooltip>
+          </Menu>
+
+          <Menu subHeading={isSidebarOpen ? "OTHERS" : ""}>
+            <Submenu title={isSidebarOpen ? "Menu Level" : ""}>
+              <Tooltip title="Post" placement="right" arrow>
+                <MenuItem
+                  icon={<ArticleIcon style={{ color: "#ecf0f1" }} />}
+                  style={{
+                    backgroundColor: selectedItem === "Post" ? "#34495e" : "transparent",
+                    color: "#ecf0f1",
+                  }}
+                  onClick={() => handleMenuItemClick("Post")}
+                >
+                  {isSidebarOpen && "Post"}
+                </MenuItem>
+              </Tooltip>
+              <Tooltip title="Details" placement="right" arrow>
+                <MenuItem
+                  icon={<InfoIcon style={{ color: "#ecf0f1" }} />}
+                  style={{
+                    backgroundColor: selectedItem === "Details" ? "#34495e" : "transparent",
+                    color: "#ecf0f1",
+                  }}
+                  onClick={() => handleMenuItemClick("Details")}
+                >
+                  {isSidebarOpen && "Details"}
+                </MenuItem>
+              </Tooltip>
+              <Submenu title={isSidebarOpen ? "Level 2" : ""}>
+                <Tooltip title="New" placement="right" arrow>
+                  <MenuItem
+                    style={{
+                      backgroundColor: selectedItem === "New" ? "#34495e" : "transparent",
+                      color: "#ecf0f1",
+                    }}
+                    onClick={() => handleMenuItemClick("New")}
+                  >
+                    {isSidebarOpen && "new"}
+                  </MenuItem>
+                </Tooltip>
+                <Tooltip title="Hello" placement="right" arrow>
+                  <MenuItem
+                    style={{
+                      backgroundColor: selectedItem === "Hello" ? "#34495e" : "transparent",
+                      color: "#ecf0f1",
+                    }}
+                    onClick={() => handleMenuItemClick("Hello")}
+                  >
+                    {isSidebarOpen && "Hello"}
+                  </MenuItem>
+                </Tooltip>
+              </Submenu>
+            </Submenu>
+            <Tooltip title="Chip" placement="right" arrow>
+              <MenuItem
+                icon={<ChipIcon style={{ color: "#ecf0f1" }} />}
+                style={{
+                  backgroundColor: selectedItem === "Chip" ? "#34495e" : "transparent",
+                  color: "#ecf0f1",
+                }}
+                onClick={() => handleMenuItemClick("Chip")}
+              >
+                {isSidebarOpen && "Chip"}
+              </MenuItem>
+            </Tooltip>
+            <Tooltip title="External Link" placement="right" arrow>
+              <MenuItem
+                target="_blank"
+                link="https://google.com"
+                style={{
+                  backgroundColor: selectedItem === "External Link" ? "#34495e" : "transparent",
+                  color: "#ecf0f1",
+                }}
+                onClick={() => handleMenuItemClick("External Link")}
+              >
+                {isSidebarOpen && "External Link"}
+              </MenuItem>
+            </Tooltip>
+          </Menu>
+        </div>
+
+        <Divider
+          orientation="vertical"
+          flexItem
+          style={{
+            display: isSidebarOpen ? "block" : "none",
+            borderColor: "#95a5a6", // Color of the divider
+            height: "100%",
+          }}
+        />
+
+        <div
+          style={{
+            marginTop: "auto",
+            padding: "10px",
+            textAlign: "center",
+            fontSize: "12px",
+            color: "#bdc3c7", // Light gray color for footer text
+          }}
+        >
+          © {currentYear} AdminMart. All rights reserved.
+        </div>
+
+        {isUserLoggedIn && (
+          <button
+            onClick={handleLogout}
+            style={{
+              width: "100%",
+              border: "none",
+              background: "none",
