@@ -13,8 +13,8 @@ def delete_txt_files(directory):
                 os.remove(file_path)
                 print(f'Deleted: {file_path}')
 
-# Specify the directory where you want to delete .txt files
+# Define the directory in the outer scope
 directory = '/path/to/your/folder'
 
-# Call the function
+# Call the function with the directory from outer scope
 delete_txt_files(directory)
