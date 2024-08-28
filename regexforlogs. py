@@ -6,24 +6,27 @@ output_file_path = 'output.txt'
 pattern = r"URL:\s*(https?://[^\s]+)\s*Request method\s*:\s*(\w+)\s*Request body\s*:\s*(.*)"
 
 try:
-    with open(input_file_path, 'r') as file:
+    with open(input_file_path, 'r', encoding='utf-8', errors='replace') as file:
         content = file.read()
     
     matches = re.findall(pattern, content)
-
+    
     if matches:
         extracted_info = "\n\nExtracted Information:\n"
         for match in matches:
-            url, method, body = match
-            extracted_info += (
-                f"URL: {url}\n"
-                f"Request Method: {method}\n"
-                f"Request Body: {body}\n\n"
-            )
+            if len(match) == 3:  # Ensure that each match has exactly 3 groups
+                url, method, body = match
+                extracted_info += (
+                    f"URL: {url}\n"
+                    f"Request Method: {method}\n"
+                    f"Request Body: {body}\n\n"
+                )
+            else:
+                print(f"Unexpected match format: {match}")
         
         modified_content = content + extracted_info
 
-        with open(output_file_path, 'w') as file:
+        with open(output_file_path, 'w', encoding='utf-8') as file:
             file.write(modified_content)
     else:
         print("No matches found in the input file.")
