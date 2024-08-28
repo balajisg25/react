@@ -1,0 +1,31 @@
+import re
+
+input_file_path = 'input.txt'
+output_file_path = 'output.txt'
+
+pattern = r"URL:\s*(https?://[^\s]+)\s*Request method\s*:\s*(\w+)\s*Request body\s*:\s*(.*)"
+
+try:
+    with open(input_file_path, 'r') as file:
+        content = file.read()
+    
+    matches = re.findall(pattern, content)
+
+    if matches:
+        extracted_info = "\n\nExtracted Information:\n"
+        for match in matches:
+            url, method, body = match
+            extracted_info += (
+                f"URL: {url}\n"
+                f"Request Method: {method}\n"
+                f"Request Body: {body}\n\n"
+            )
+        
+        modified_content = content + extracted_info
+
+        with open(output_file_path, 'w') as file:
+            file.write(modified_content)
+    else:
+        print("No matches found in the input file.")
+except Exception as e:
+    print(f"An error occurred: {e}")
