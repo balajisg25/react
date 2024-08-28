@@ -32,3 +32,38 @@ try:
         print("No matches found in the input file.")
 except Exception as e:
     print(f"An error occurred: {e}")
+
+
+import re
+import os
+
+input_file_path = 'input.txt'
+output_file_path = 'first_match.txt'
+
+# Adjusted regex pattern
+pattern = re.compile(
+    r"URL:\s*(https?://[^\s]+)\s*Request method\s*:\s*(\w+)\s*Request body\s*:\s*([\s\S]*?)(?:\n|$)", 
+    re.DOTALL
+)
+
+try:
+    with open(input_file_path, 'r', encoding='utf-8', errors='replace') as file:
+        content = file.read()
+    
+    # Find the first match
+    match = pattern.search(content)
+    
+    if match:
+        url, method, body = match.groups()
+        # Write the first match to a separate file
+        with open(output_file_path, 'w', encoding='utf-8') as file:
+            file.write(
+                f"URL: {url}\n"
+                f"Request Method: {method}\n"
+                f"Request Body: {body.strip()}\n"
+            )
+        print(f"First match written to {output_file_path}")
+    else:
+        print("No matches found in the input file.")
+except Exception as e:
+    print(f"An error occurred: {e}")
