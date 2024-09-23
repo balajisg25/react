@@ -1,79 +1,47 @@
 import { useState, useEffect } from "react";
-// other imports remain the same
+import FullCalendar from "@fullcalendar/react";
+import listPlugin from "@fullcalendar/list";
+import { Box, Typography, CircularProgress } from "@mui/material";
 
 const Calendar = () => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
   const [currentEvents, setCurrentEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         const response = await fetch('http://localhost:5000/api/events');
+        if (!response.ok) throw new Error('Network response was not ok');
+        
         const data = await response.json();
+        console.log(data); // Log fetched data
         setCurrentEvents(data);
       } catch (error) {
-        console.error('Error fetching events:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchEvents();
-  }, []); // Empty dependency array to run once on mount
+  }, []);
 
   return (
     <Box m="20px">
-      <Header title="Calendar" subtitle="Full Calendar Interactive Page" />
-      <Grid container spacing={2}>
-        <Grid xs={12} md={4}>
-          <Box backgroundColor={colors.primary[400]} p="15px" borderRadius="4px">
-            <Typography variant="h5">Events</Typography>
-            <List>
-              {currentEvents.map((event) => (
-                <ListItem
-                  key={event.id}
-                  sx={{
-                    backgroundColor: colors.greenAccent[500],
-                    margin: "10px 0",
-                    borderRadius: "2px",
-                  }}
-                >
-                  <ListItemText
-                    primary={event.title}
-                    secondary={
-                      <Typography>
-                        {formatDate(new Date(event.date), {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                          hour: 'numeric',
-                          minute: 'numeric',
-                          hour12: true,
-                        })}
-                      </Typography>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        </Grid>
-        <Grid xs={12} md={8}>
-          <Box ml="15px">
-            <FullCalendar
-              height="75vh"
-              plugins={[listPlugin]}
-              headerToolbar={{
-                left: "prev,next today",
-                center: "title",
-                right: "listMonth",
-              }}
-              initialView="listMonth"
-              eventsSet={setCurrentEvents}
-              events={currentEvents} // Use the fetched events
-            />
-          </Box>
-        </Grid>
-      </Grid>
+      <Typography variant="h5">Events</Typography>
+      {loading ? (
+        <CircularProgress />
+      ) : error ? (
+        <Typography color="error">{error}</Typography>
+      ) : (
+        <FullCalendar
+          height="75vh"
+          plugins={[listPlugin]}
+          initialView="listMonth"
+          events={currentEvents}
+        />
+      )}
     </Box>
   );
 };
