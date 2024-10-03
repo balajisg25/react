@@ -1,0 +1,37 @@
+// client/src/tracking.js
+import axios from 'axios';
+
+const trackVisit = async (page) => {
+  try {
+    const response = await axios.get('https://api.ipify.org?format=json');
+    const ip = response.data.ip;
+    const timestamp = new Date().toISOString();
+
+    await axios.post('http://localhost:5000/api/track', {
+      ip,
+      timestamp,
+      page,
+    });
+  } catch (error) {
+    console.error('Error tracking visit:', error);
+  }
+};
+
+export default trackVisit;
+
+
+
+
+// client/src/components/Page1.js
+import React, { useEffect } from 'react';
+import trackVisit from '../tracking';
+
+const Page1 = () => {
+  useEffect(() => {
+    trackVisit('/page1');
+  }, []);
+
+  return <h1>Page 1</h1>;
+};
+
+export default Page1;
