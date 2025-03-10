@@ -1,0 +1,183 @@
+Jenkins Pipeline for PostgreSQL Auto Backup & Push to GitLab (HTTPS)
+
+This Jenkins pipeline will:
+✅ Dump the PostgreSQL database.
+✅ Push the backup to GitLab over HTTPS.
+✅ Automate the process with Jenkins Pipeline.
+
+
+---
+
+1. Configure Jenkins
+
+Before proceeding, ensure:
+
+Git is installed on the Jenkins server.
+
+Jenkins has Git credentials (via Personal Access Token (PAT) for GitLab).
+
+Jenkins user has access to the PostgreSQL database.
+
+
+
+---
+
+2. Create a Jenkins Pipeline Job
+
+1. Go to Jenkins → New Item → Pipeline
+
+
+2. Enter a Job Name and select Pipeline
+
+
+3. Scroll down to "Pipeline" section
+
+
+4. Choose "Pipeline script" and paste the following code:
+
+
+
+
+---
+
+3. Jenkinsfile: Full Pipeline Script
+
+pipeline {
+    agent any
+
+    environment {
+        DB_NAME = "your_database"
+        DB_USER = "your_db_user"
+        DB_HOST = "localhost"
+        DB_PORT = "5432"
+        DB_PASSWORD = "your_db_password"
+        
+        BACKUP_DIR = "/var/lib/jenkins/pg_backups"
+        BACKUP_FILE = "db_backup_${new Date().format('yyyy-MM-dd_HH-mm-ss')}.sql"
+        
+        GIT_REPO = "/var/lib/jenkins/workspace/db-backups"
+        GIT_BRANCH = "main"
+        GITLAB_URL = "https://gitlab.com/your-username/your-repository.git"
+        GIT_COMMIT_MSG = "PostgreSQL backup on ${new Date()}"
+    }
+
+    stages {
+        stage('Prepare Environment') {
+            steps {
+                script {
+                    sh "mkdir -p ${BACKUP_DIR}"
+                }
+            }
+        }
+
+        stage('Backup Database') {
+            steps {
+                script {
+                    sh """
+                    export PGPASSWORD='${DB_PASSWORD}'
+                    pg_dump -U ${DB_USER} -h ${DB_HOST} -p ${DB_PORT} -F c ${DB_NAME} > ${BACKUP_DIR}/${BACKUP_FILE}
+                    unset PGPASSWORD
+                    """
+                }
+            }
+        }
+
+        stage('Push Backup to GitLab') {
+            steps {
+                script {
+                    sh """
+                    cd ${GIT_REPO}
+                    cp ${BACKUP_DIR}/${BACKUP_FILE} ${GIT_REPO}
+
+                    git config --global user.email "your-email@example.com"
+                    git config --global user.name "Your Name"
+
+                    git add .
+                    git commit -m "${GIT_COMMIT_MSG}"
+                    git push ${GITLAB_URL} ${GIT_BRANCH}
+                    """
+                }
+            }
+        }
+
+        stage('Cleanup Old Backups') {
+            steps {
+                script {
+                    sh "find ${BACKUP_DIR} -type f -name '*.sql' -mtime +7 -exec rm {} \\;"
+                }
+            }
+        }
+    }
+}
+
+
+---
+
+4. Setup Git Authentication for Jenkins
+
+Since GitLab does not support password authentication, use a Personal Access Token (PAT):
+
+Option 1: Store Credentials in Git
+
+Run the following command on the Jenkins server:
+
+git config --global credential.helper store
+
+On the first git push, enter:
+
+Username: your-username
+Password: your-access-token
+
+Git will remember the credentials.
+
+Option 2: Use Jenkins Credentials Manager
+
+1. Go to Jenkins → Manage Jenkins → Manage Credentials
+
+
+2. Add a new "Username and Password" credential
+
+
+3. Use it in the pipeline with:
+
+withCredentials([usernamePassword(credentialsId: 'gitlab-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+    sh "git push https://${GIT_USER}:${GIT_PASS}@gitlab.com/your-username/your-repository.git ${GIT_BRANCH}"
+}
+
+
+
+
+---
+
+5. Run the Pipeline
+
+Save the Jenkins pipeline and click "Build Now"
+
+Verify the backup appears in GitLab
+
+
+
+---
+
+6. Automate the Job
+
+To run the pipeline every day at 2 AM, go to:
+
+Pipeline → Configure → Build Triggers
+
+Enable "Build periodically" and add:
+
+0 2 * * *
+
+
+
+---
+
+7. Verify Everything
+
+✅ Run the job manually and check GitLab.
+✅ Ensure Jenkins has GitLab credentials.
+✅ Check logs under "Console Output" in Jenkins.
+
+This setup automates PostgreSQL backups and stores them in GitLab via Jenkins Pipeline! 🚀
+
