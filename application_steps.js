@@ -1,34 +1,43 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-import { Autocomplete, TextField, Button, Container, Typography } from "@mui/material";
+import { Autocomplete, TextField, Button, Container, Typography, Card, CardContent } from "@mui/material";
 
 function App() {
   const [excelData, setExcelData] = useState([]);
   const [input, setInput] = useState("");
   const [filteredData, setFilteredData] = useState([]);
   const [selectedDescription, setSelectedDescription] = useState(null);
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState(null);
 
-  // Function to load Excel data
+  // Load Excel file and convert to JSON
   const fetchExcelData = async () => {
-    const response = await fetch("/data.xlsx"); // Excel file in 'public' folder
-    const arrayBuffer = await response.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(sheet);
-    setExcelData(jsonData);
+    try {
+      const response = await fetch("/data.xlsx"); // Ensure file is in 'public/' folder
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+      if (!jsonData.length || !jsonData[0].Description) {
+        throw new Error("Invalid table format: Missing 'Description' column");
+      }
+
+      setExcelData(jsonData);
+    } catch (error) {
+      console.error("Error loading Excel file:", error);
+    }
   };
 
   useEffect(() => {
     fetchExcelData();
   }, []);
 
-  // Filter descriptions based on user input
+  // Filter descriptions as user types
   useEffect(() => {
     if (input.length > 1) {
       const filtered = excelData
-        .map((row) => row.Description) // Extract only 'Description' column
+        .map((row) => row.Description)
         .filter((desc) => desc.toLowerCase().includes(input.toLowerCase()));
       setFilteredData(filtered);
     } else {
@@ -39,7 +48,11 @@ function App() {
   const handleSearch = () => {
     if (selectedDescription) {
       const stepDetails = excelData.find((row) => row.Description === selectedDescription)?.Steps;
-      setResult(stepDetails || "No steps found.");
+      setResult(
+        stepDetails
+          ? stepDetails.split("\n").map((step, index) => <Typography key={index}>{step}</Typography>)
+          : "No steps found."
+      );
     } else {
       setResult("Please select a description.");
     }
@@ -67,19 +80,6 @@ function App() {
         style={{ marginBottom: 20 }}
       />
 
-      {/* Search Button */}
-      <Button variant="contained" color="primary" fullWidth onClick={handleSearch}>
-        Search
-      </Button>
-
-      {/* Result Display */}
-      {result && (
-        <Typography variant="h6" style={{ marginTop: 20 }}>
-          {result}
-        </Typography>
-      )}
-    </Container>
-  );
-}
-
-export default App;
+      {/* Black Search Button */}
+      <Button 
+        variant
