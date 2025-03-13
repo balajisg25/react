@@ -42,7 +42,11 @@ function App() {
       setFilteredData(filtered);
     } else {
       setFilteredData([]);
-      setResult(null); // Clear steps when input is empty
+    }
+
+    // Clear steps when input is empty
+    if (input === "") {
+      setResult(null);
     }
   }, [input, excelData]);
 
@@ -77,7 +81,6 @@ function App() {
             label="Enter a word"
             variant="outlined"
             fullWidth
-            onChange={(e) => setInput(e.target.value)} // To handle clearing of input
           />
         )}
         style={{ marginBottom: 20 }}
