@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-import { TextField, Button, Autocomplete, Container, Typography } from "@mui/material";
+import { Autocomplete, TextField, Button, Container, Typography } from "@mui/material";
 
 function App() {
   const [excelData, setExcelData] = useState([]);
@@ -11,7 +11,7 @@ function App() {
 
   // Function to load Excel data
   const fetchExcelData = async () => {
-    const response = await fetch("/data.xlsx"); // Excel file in the 'public' folder
+    const response = await fetch("/data.xlsx"); // Excel file in 'public' folder
     const arrayBuffer = await response.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array" });
     const sheetName = workbook.SheetNames[0];
@@ -49,22 +49,21 @@ function App() {
     <Container maxWidth="sm" style={{ marginTop: 50 }}>
       <Typography variant="h4" gutterBottom>React MUI Excel Search</Typography>
 
-      {/* Input Field */}
-      <TextField
-        fullWidth
-        label="Enter a word"
-        variant="outlined"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        style={{ marginBottom: 20 }}
-      />
-
-      {/* Autocomplete Dropdown */}
+      {/* Autocomplete Input Field */}
       <Autocomplete
+        freeSolo
         options={filteredData}
         getOptionLabel={(option) => option}
+        onInputChange={(event, newInput) => setInput(newInput)}
         onChange={(event, newValue) => setSelectedDescription(newValue)}
-        renderInput={(params) => <TextField {...params} label="Select Description" variant="outlined" />}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Enter a word"
+            variant="outlined"
+            fullWidth
+          />
+        )}
         style={{ marginBottom: 20 }}
       />
 
