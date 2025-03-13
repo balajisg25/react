@@ -42,6 +42,7 @@ function App() {
       setFilteredData(filtered);
     } else {
       setFilteredData([]);
+      setResult(null); // Clear steps when input is empty
     }
   }, [input, excelData]);
 
@@ -54,6 +55,8 @@ function App() {
           ? stepDetails.split("\n").map((step, index) => <Typography key={index}>{step}</Typography>)
           : "No steps found."
       );
+    } else {
+      setResult(null); // Clear steps when no description is selected
     }
   }, [selectedDescription, excelData]);
 
@@ -74,6 +77,7 @@ function App() {
             label="Enter a word"
             variant="outlined"
             fullWidth
+            onChange={(e) => setInput(e.target.value)} // To handle clearing of input
           />
         )}
         style={{ marginBottom: 20 }}
