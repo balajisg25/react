@@ -82,4 +82,25 @@ function App() {
 
       {/* Black Search Button */}
       <Button 
-        variant
+        variant="contained" 
+        style={{ backgroundColor: "black", color: "white" }} 
+        fullWidth 
+        onClick={handleSearch}
+      >
+        Search
+      </Button>
+
+      {/* Display Steps in Card Component */}
+      {result && (
+        <Card style={{ marginTop: 20, padding: 10 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>Steps:</Typography>
+            {result}
+          </CardContent>
+        </Card>
+      )}
+    </Container>
+  );
+}
+
+export default App;
