@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-import { Autocomplete, TextField, Container, Typography, Card, CardContent } from "@mui/material";
+import {
+  Autocomplete,
+  TextField,
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  Alert
+} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CloseIcon from "@mui/icons-material/Close";
 
 function App() {
   const [excelData, setExcelData] = useState([]);
@@ -8,11 +24,15 @@ function App() {
   const [filteredData, setFilteredData] = useState([]);
   const [selectedDescription, setSelectedDescription] = useState(null);
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Load Excel file and convert to JSON
   const fetchExcelData = async () => {
     try {
-      const response = await fetch("/data.xlsx"); // Ensure file is in 'public/' folder
+      const response = await fetch("/data.xlsx");
+      if (!response.ok) throw new Error("File not found or inaccessible");
+
       const arrayBuffer = await response.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: "array" });
       const sheetName = workbook.SheetNames[0];
@@ -20,12 +40,14 @@ function App() {
       const jsonData = XLSX.utils.sheet_to_json(sheet);
 
       if (!jsonData.length || !jsonData[0].Description) {
-        throw new Error("Invalid table format: Missing 'Description' column");
+        throw new Error("Invalid format: 'Description' column is missing");
       }
 
       setExcelData(jsonData);
-    } catch (error) {
-      console.error("Error loading Excel file:", error);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,62 +59,93 @@ function App() {
   useEffect(() => {
     if (input.length > 1) {
       const filtered = excelData
-        .map((row) => row.Description)
+        .map((row) => row.Description.trim())
         .filter((desc) => desc.toLowerCase().includes(input.toLowerCase()));
       setFilteredData(filtered);
     } else {
       setFilteredData([]);
     }
 
-    // Clear steps when input is empty
     if (input === "") {
       setResult(null);
     }
   }, [input, excelData]);
 
-  // Automatically display steps when a description is selected
+  // Display steps when a description is selected
   useEffect(() => {
     if (selectedDescription) {
       const stepDetails = excelData.find((row) => row.Description === selectedDescription)?.Steps;
       setResult(
         stepDetails
-          ? stepDetails.split("\n").map((step, index) => <Typography key={index}>{step}</Typography>)
+          ? stepDetails.split("\n").map((step, index) => (
+              <ListItem key={index}>
+                <ListItemIcon>
+                  <CheckCircleIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary={step} />
+              </ListItem>
+            ))
           : "No steps found."
       );
     } else {
-      setResult(null); // Clear steps when no description is selected
+      setResult(null);
     }
   }, [selectedDescription, excelData]);
 
   return (
     <Container maxWidth="sm" style={{ marginTop: 50 }}>
-      <Typography variant="h4" gutterBottom>React MUI Excel Search</Typography>
+      <Typography variant="h4" align="center" gutterBottom>
+        📄 Excel Search Tool
+      </Typography>
 
-      {/* Autocomplete Input Field */}
-      <Autocomplete
-        freeSolo
-        options={filteredData}
-        getOptionLabel={(option) => option}
-        onInputChange={(event, newInput) => setInput(newInput)}
-        onChange={(event, newValue) => setSelectedDescription(newValue)}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Enter a word"
-            variant="outlined"
-            fullWidth
+      {loading && <CircularProgress style={{ display: "block", margin: "auto" }} />}
+
+      {error && <Alert severity="error">{error}</Alert>}
+
+      {!loading && !error && (
+        <Card elevation={3} style={{ padding: 20 }}>
+          {/* Autocomplete Input Field */}
+          <Autocomplete
+            freeSolo
+            options={filteredData}
+            getOptionLabel={(option) => option}
+            onInputChange={(event, newInput) => setInput(newInput)}
+            onChange={(event, newValue) => setSelectedDescription(newValue)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Search description..."
+                variant="outlined"
+                fullWidth
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {input && (
+                        <IconButton onClick={() => setInput("")}>
+                          <CloseIcon />
+                        </IconButton>
+                      )}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+            style={{ marginBottom: 20 }}
           />
-        )}
-        style={{ marginBottom: 20 }}
-      />
 
-      {/* Display Steps in Card Component */}
-      {result && (
-        <Card style={{ marginTop: 20, padding: 10 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>Steps:</Typography>
-            {result}
-          </CardContent>
+          {/* Display Steps in Card Component */}
+          {result && (
+            <Card style={{ marginTop: 20, padding: 10 }} elevation={2}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  ✅ Steps:
+                </Typography>
+                <List>{result}</List>
+              </CardContent>
+            </Card>
+          )}
         </Card>
       )}
     </Container>
