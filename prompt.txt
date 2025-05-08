@@ -1,0 +1,24 @@
+Performance Test Analysis Prompt
+
+Please analyze the attached performance test result and provide an evaluation based on the following criteria:
+
+1. Load Test Success Criteria:
+
+The 90th percentile response time of all transactions must be under the SLA of 2 seconds.
+
+The error percentage must be less than 4%.
+
+
+
+2. Specific Analysis Requirements:
+
+State whether the 90th percentile response time is under the SLA or not.
+
+Check if the targeted number of executions for the transaction named "[Insert Transaction Name]" has been achieved, with the target set at 1,000 executions.
+
+List any transactions that have an error rate of 4% or higher, including their names and actual error percentages.
+
+
+
+
+Please include a final verdict: Is the load test successful or not based on the above criteria?
