@@ -1,0 +1,65 @@
+import { chromium, Browser, BrowserContext, Page, LaunchOptions } from 'playwright';
+import * as fs from 'fs';
+import * as path from 'path';
+
+async function ensureDir(dir: string) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+async function createHarForAction(
+  browser: Browser,
+  harName: string,
+  action: (page: Page) => Promise<void>,
+  baseURL: string,
+  outputDir: string
+) {
+  const context: BrowserContext = await browser.newContext({
+    recordHarPath: path.join(outputDir, harName),
+  });
+  const page: Page = await context.newPage();
+  await page.goto(baseURL);
+  await action(page);
+  await context.close();
+}
+
+(async () => {
+  const outputDir = 'C:\\download';
+  const baseURL = 'https://example.com';
+
+  await ensureDir(outputDir);
+
+  const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+
+  const browser = await chromium.launch({
+    executablePath: edgePath,
+    headless: false // optional: set to true to run without UI
+  });
+
+  // Action 1: Goto homepage
+  await createHarForAction(browser, '01_goto_home.har', async (page) => {}, baseURL, outputDir);
+
+  // Action 2: Fill username
+  await createHarForAction(browser, '02_fill_username.har', async (page) => {
+    await page.goto(`${baseURL}/login`);
+    await page.fill('#username', 'user123');
+  }, baseURL, outputDir);
+
+  // Action 3: Fill password
+  await createHarForAction(browser, '03_fill_password.har', async (page) => {
+    await page.goto(`${baseURL}/login`);
+    await page.fill('#password', 'mypassword');
+  }, baseURL, outputDir);
+
+  // Action 4: Click login
+  await createHarForAction(browser, '04_click_login.har', async (page) => {
+    await page.goto(`${baseURL}/login`);
+    await page.fill('#username', 'user123');
+    await page.fill('#password', 'mypassword');
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState('networkidle');
+  }, baseURL, outputDir);
+
+  await browser.close();
+})();
