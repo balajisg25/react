@@ -1,0 +1,371 @@
+import { useState, useEffect } from 'react';
+import { Code, Play, Download, RefreshCw, Settings, Save, Copy } from 'lucide-react';
+
+export default function PlaywrightRecorder() {
+  const [scriptContent, setScriptContent] = useState('// Paste your Playwright script here or use the template below\n\nasync function run() {\n  const browser = await playwright.chromium.launch();\n  const context = await browser.newContext({\n    recordHar: { path: "recording.har" }\n  });\n  const page = await context.newPage();\n  \n  // Your steps here\n  await page.goto("https://example.com");\n  await page.click("a");\n  await page.fill("input[name=\'search\']", "test query");\n  \n  // Close browser\n  await context.close();\n  await browser.close();\n}\n');
+  
+  const [recordedActions, setRecordedActions] = useState([]);
+  const [harContent, setHarContent] = useState(null);
+  const [loadRunnerScript, setLoadRunnerScript] = useState('');
+  const [activeTab, setActiveTab] = useState('script');
+  const [isRecording, setIsRecording] = useState(false);
+  const [scriptName, setScriptName] = useState('MyScript');
+
+  // Mock function to simulate script execution
+  const executeScript = () => {
+    setIsRecording(true);
+    
+    // Parse the script to extract actions
+    const actions = extractActionsFromScript(scriptContent);
+    setRecordedActions(actions);
+    
+    // Generate mock HAR content
+    const mockHar = generateMockHar(actions);
+    setHarContent(mockHar);
+    
+    // Generate LoadRunner script from HAR
+    const lrScript = convertHarToLoadRunner(mockHar, scriptName);
+    setLoadRunnerScript(lrScript);
+    
+    setTimeout(() => {
+      setIsRecording(false);
+    }, 2000);
+  };
+  
+  // Extract actions from the script content
+  const extractActionsFromScript = (script) => {
+    const actions = [];
+    const lines = script.split('\n');
+    
+    lines.forEach(line => {
+      if (line.includes('page.goto')) {
+        const url = line.match(/["'](.*?)["']/)?.[1] || 'unknown-url';
+        actions.push({ type: 'navigation', target: url, timestamp: new Date().toISOString() });
+      } else if (line.includes('page.click')) {
+        const selector = line.match(/["'](.*?)["']/)?.[1] || 'unknown-selector';
+        actions.push({ type: 'click', target: selector, timestamp: new Date().toISOString() });
+      } else if (line.includes('page.fill')) {
+        const selector = line.match(/["'](.*?)["']/)?.[1] || 'unknown-selector';
+        const value = line.match(/["'](.*?)["'](?:\s*,\s*["'](.*?)["'])/)?.[2] || 'unknown-value';
+        actions.push({ type: 'fill', target: selector, value, timestamp: new Date().toISOString() });
+      }
+    });
+    
+    return actions;
+  };
+  
+  // Generate mock HAR content from actions
+  const generateMockHar = (actions) => {
+    const entries = actions.map((action, index) => {
+      return {
+        _id: `entry_${index}`,
+        startedDateTime: action.timestamp,
+        request: {
+          method: action.type === 'navigation' ? 'GET' : 'POST',
+          url: action.type === 'navigation' ? action.target : 'https://example.com/api/action',
+          postData: action.type !== 'navigation' ? {
+            text: JSON.stringify({
+              action: action.type,
+              selector: action.target,
+              value: action.value || ''
+            })
+          } : undefined
+        },
+        response: {
+          status: 200,
+          statusText: 'OK',
+          content: {
+            size: 1024,
+            mimeType: 'application/json'
+          }
+        },
+        time: 120
+      };
+    });
+    
+    return {
+      log: {
+        version: '1.2',
+        creator: {
+          name: 'Playwright',
+          version: '1.30.0'
+        },
+        entries
+      }
+    };
+  };
+  
+  // Convert HAR to LoadRunner script
+  const convertHarToLoadRunner = (har, scriptName) => {
+    if (!har || !har.log || !har.log.entries) return '';
+    
+    const entries = har.log.entries;
+    let script = `Action()
+{
+    lr_start_transaction("${scriptName}");
+    
+`;
+    
+    entries.forEach((entry, index) => {
+      const { request } = entry;
+      const method = request.method;
+      const url = request.url;
+      
+      if (method === 'GET') {
+        script += `    // Request ${index + 1}: Navigation to ${url}
+    web_url("${url.split('/').pop() || 'page' + index}",
+        "URL=${url}",
+        "Resource=0",
+        "RecContentType=text/html",
+        "Referer=",
+        "Snapshot=t${index + 1}.inf",
+        "Mode=HTML",
+        LAST);
+        
+`;
+      } else {
+        const postData = request.postData?.text ? JSON.parse(request.postData.text) : {};
+        script += `    // Request ${index + 1}: ${postData.action} on ${postData.selector}
+    web_submit_data("${postData.action || 'action' + index}",
+        "Action=${url}",
+        "Method=${method}",
+        "RecContentType=application/json",
+        "Referer=https://example.com/",
+        "Snapshot=t${index + 1}.inf",
+        "Mode=HTML",
+        ITEMDATA,
+        "Name=action", "Value=${postData.action || ''}", ENDITEM,
+        "Name=selector", "Value=${postData.selector || ''}", ENDITEM,
+        ${postData.value ? `"Name=value", "Value=${postData.value}", ENDITEM,` : ''}
+        LAST);
+        
+`;
+      }
+    });
+    
+    script += `    lr_end_transaction("${scriptName}", LR_AUTO);
+    
+    return 0;
+}`;
+    
+    return script;
+  };
+
+  // Copy content to clipboard
+  const copyToClipboard = (content) => {
+    navigator.clipboard.writeText(content).catch(err => {
+      console.error('Failed to copy: ', err);
+    });
+  };
+  
+  // Download content as file
+  const downloadFile = (content, filename, type) => {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="flex flex-col w-full max-w-full h-full bg-gray-50 text-gray-900">
+      <div className="bg-blue-600 p-4 text-white">
+        <h1 className="text-2xl font-bold">Playwright HAR Recorder & LoadRunner Converter</h1>
+        <p className="text-sm">Record Playwright actions, save HAR files, and convert to LoadRunner scripts</p>
+      </div>
+      
+      <div className="p-4 flex items-center space-x-4">
+        <div className="flex-1">
+          <input
+            type="text"
+            value={scriptName}
+            onChange={(e) => setScriptName(e.target.value)}
+            placeholder="Script Name"
+            className="w-full p-2 border border-gray-300 rounded"
+          />
+        </div>
+        <button 
+          onClick={executeScript}
+          disabled={isRecording}
+          className={`flex items-center space-x-2 px-4 py-2 rounded font-medium ${isRecording ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} text-white`}>
+          {isRecording ? (
+            <>
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              <span>Recording...</span>
+            </>
+          ) : (
+            <>
+              <Play className="w-5 h-5" />
+              <span>Run & Record</span>
+            </>
+          )}
+        </button>
+      </div>
+      
+      <div className="flex border-b border-gray-300">
+        <button 
+          className={`px-4 py-2 font-medium ${activeTab === 'script' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+          onClick={() => setActiveTab('script')}>
+          Playwright Script
+        </button>
+        <button 
+          className={`px-4 py-2 font-medium ${activeTab === 'actions' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+          onClick={() => setActiveTab('actions')}>
+          Recorded Actions
+        </button>
+        <button 
+          className={`px-4 py-2 font-medium ${activeTab === 'har' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+          onClick={() => setActiveTab('har')}>
+          HAR File
+        </button>
+        <button 
+          className={`px-4 py-2 font-medium ${activeTab === 'loadrunner' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+          onClick={() => setActiveTab('loadrunner')}>
+          LoadRunner Script
+        </button>
+      </div>
+      
+      <div className="flex-1 overflow-auto p-4">
+        {activeTab === 'script' && (
+          <div className="h-full">
+            <div className="flex justify-between mb-2">
+              <h2 className="text-lg font-medium flex items-center"><Code className="w-5 h-5 mr-2" /> Playwright Script</h2>
+              <div className="space-x-2">
+                <button 
+                  onClick={() => copyToClipboard(scriptContent)}
+                  className="p-2 rounded bg-gray-200 hover:bg-gray-300">
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <textarea 
+              value={scriptContent}
+              onChange={(e) => setScriptContent(e.target.value)}
+              className="w-full h-96 p-4 font-mono text-sm border border-gray-300 rounded"
+              placeholder="Enter your Playwright script here..."
+            />
+          </div>
+        )}
+        
+        {activeTab === 'actions' && (
+          <div>
+            <div className="flex justify-between mb-2">
+              <h2 className="text-lg font-medium">Recorded Actions</h2>
+              {recordedActions.length > 0 && (
+                <button 
+                  onClick={() => downloadFile(JSON.stringify(recordedActions, null, 2), `${scriptName}_actions.json`, 'application/json')}
+                  className="flex items-center space-x-1 p-2 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">
+                  <Download className="w-4 h-4" />
+                  <span>Download</span>
+                </button>
+              )}
+            </div>
+            
+            {recordedActions.length > 0 ? (
+              <div className="border border-gray-300 rounded overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-300">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
+                      <th className="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                      <th className="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {recordedActions.map((action, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="py-2 px-4 text-sm font-medium text-gray-900">{action.type}</td>
+                        <td className="py-2 px-4 text-sm text-gray-500">{action.target}</td>
+                        <td className="py-2 px-4 text-sm text-gray-500">{action.value || '-'}</td>
+                        <td className="py-2 px-4 text-sm text-gray-500">{new Date(action.timestamp).toLocaleTimeString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-gray-100 rounded border border-gray-200">
+                <p className="text-gray-500">No actions recorded yet. Run a script to capture actions.</p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {activeTab === 'har' && (
+          <div>
+            <div className="flex justify-between mb-2">
+              <h2 className="text-lg font-medium">HAR File Content</h2>
+              {harContent && (
+                <div className="space-x-2">
+                  <button 
+                    onClick={() => copyToClipboard(JSON.stringify(harContent, null, 2))}
+                    className="p-2 rounded bg-gray-200 hover:bg-gray-300">
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => downloadFile(JSON.stringify(harContent, null, 2), `${scriptName}.har`, 'application/json')}
+                    className="flex items-center space-x-1 p-2 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">
+                    <Download className="w-4 h-4" />
+                    <span>Download HAR</span>
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {harContent ? (
+              <pre className="bg-gray-800 text-gray-100 p-4 rounded overflow-auto h-96 text-sm font-mono">
+                {JSON.stringify(harContent, null, 2)}
+              </pre>
+            ) : (
+              <div className="text-center py-12 bg-gray-100 rounded border border-gray-200">
+                <p className="text-gray-500">No HAR content available yet. Run a script to generate HAR file.</p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {activeTab === 'loadrunner' && (
+          <div>
+            <div className="flex justify-between mb-2">
+              <h2 className="text-lg font-medium">LoadRunner Script</h2>
+              {loadRunnerScript && (
+                <div className="space-x-2">
+                  <button 
+                    onClick={() => copyToClipboard(loadRunnerScript)}
+                    className="p-2 rounded bg-gray-200 hover:bg-gray-300">
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => downloadFile(loadRunnerScript, `${scriptName}.c`, 'text/plain')}
+                    className="flex items-center space-x-1 p-2 rounded bg-blue-100 hover:bg-blue-200 text-blue-700">
+                    <Download className="w-4 h-4" />
+                    <span>Download Script</span>
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {loadRunnerScript ? (
+              <pre className="bg-gray-800 text-gray-100 p-4 rounded overflow-auto h-96 text-sm font-mono">
+                {loadRunnerScript}
+              </pre>
+            ) : (
+              <div className="text-center py-12 bg-gray-100 rounded border border-gray-200">
+                <p className="text-gray-500">No LoadRunner script available yet. Run a script to generate the LoadRunner conversion.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      
+      <div className="p-4 border-t border-gray-300 bg-gray-100 text-sm text-gray-600">
+        <p>Note: This tool simulates the recording process. In a real implementation, it would integrate with Playwright's API to run actual browser tests.</p>
+      </div>
+    </div>
+  );
+}
