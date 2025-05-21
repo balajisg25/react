@@ -1,0 +1,1003 @@
+// File structure for frontend
+// green-app-frontend/
+// ├── public/
+// │   ├── index.html
+// │   └── ...
+// ├── src/
+// │   ├── components/
+// │   │   ├── Login.js
+// │   │   ├── TopBar.js
+// │   │   ├── MainMenu.js
+// │   │   └── PrivateRoute.js
+// │   ├── themes/
+// │   │   └── greenTheme.js
+// │   ├── pages/
+// │   │   ├── Dashboard.js
+// │   │   ├── Settings.js
+// │   │   └── Reports.js
+// │   ├── services/
+// │   │   ├── api.js
+// │   │   └── auth.js
+// │   ├── App.js
+// │   └── index.js
+// ├── package.json
+// └── ...
+
+// package.json
+{
+  "name": "green-app-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.0",
+    "@mui/material": "^5.14.0",
+    "axios": "^1.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.14.0",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
+
+// src/themes/greenTheme.js
+import { createTheme } from '@mui/material/styles';
+
+const greenTheme = createTheme({
+  palette: {
+    primary: {
+      light: '#4caf50',
+      main: '#2e7d32',
+      dark: '#1b5e20',
+      contrastText: '#fff',
+    },
+    secondary: {
+      light: '#80cbc4',
+      main: '#009688',
+      dark: '#00695c',
+      contrastText: '#fff',
+    },
+    background: {
+      default: '#f5f5f5',
+      paper: '#ffffff',
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    button: {
+      textTransform: 'none',
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 4,
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0px 2px 4px -1px rgba(0,0,0,0.1)',
+        },
+      },
+    },
+  },
+});
+
+export default greenTheme;
+
+// src/index.js
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import App from './App';
+import greenTheme from './themes/greenTheme';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <ThemeProvider theme={greenTheme}>
+        <CssBaseline />
+        <App />
+      </ThemeProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+// src/App.js
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Login from './components/Login';
+import TopBar from './components/TopBar';
+import PrivateRoute from './components/PrivateRoute';
+import Dashboard from './pages/Dashboard';
+import Settings from './pages/Settings';
+import Reports from './pages/Reports';
+import { getToken } from './services/auth';
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  useEffect(() => {
+    // Check if user is authenticated
+    const token = getToken();
+    setIsAuthenticated(!!token);
+  }, []);
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {isAuthenticated && <TopBar />}
+      
+      <Routes>
+        <Route path="/login" element={
+          isAuthenticated ? <Navigate to="/" /> : <Login setIsAuthenticated={setIsAuthenticated} />
+        } />
+        <Route path="/" element={
+          <PrivateRoute isAuthenticated={isAuthenticated}>
+            <Dashboard />
+          </PrivateRoute>
+        } />
+        <Route path="/reports/*" element={
+          <PrivateRoute isAuthenticated={isAuthenticated}>
+            <Reports />
+          </PrivateRoute>
+        } />
+        <Route path="/settings" element={
+          <PrivateRoute isAuthenticated={isAuthenticated}>
+            <Settings />
+          </PrivateRoute>
+        } />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Box>
+  );
+}
+
+export default App;
+
+// src/components/PrivateRoute.js
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+
+const PrivateRoute = ({ children, isAuthenticated }) => {
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+export default PrivateRoute;
+
+// src/components/Login.js
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Avatar from '@mui/material/Avatar';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import Box from '@mui/material/Box';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import Typography from '@mui/material/Typography';
+import Container from '@mui/material/Container';
+import Paper from '@mui/material/Paper';
+import Alert from '@mui/material/Alert';
+import { login } from '../services/auth';
+
+const Login = ({ setIsAuthenticated }) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+    
+    // Clear errors when user types
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: ''
+      });
+    }
+    
+    if (apiError) {
+      setApiError('');
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      try {
+        const response = await login(formData.email, formData.password);
+        if (response.token) {
+          setIsAuthenticated(true);
+          navigate('/');
+        }
+      } catch (error) {
+        setApiError(error.response?.data?.message || 'Login failed. Please check your credentials.');
+      }
+    }
+  };
+
+  return (
+    <Container component="main" maxWidth="sm" sx={{ mt: 8 }}>
+      <Paper elevation={3} sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
+          <LockOutlinedIcon />
+        </Avatar>
+        <Typography component="h1" variant="h5">
+          Sign in
+        </Typography>
+        
+        {apiError && (
+          <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
+            {apiError}
+          </Alert>
+        )}
+        
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="email"
+            label="Email Address"
+            name="email"
+            autoComplete="email"
+            autoFocus
+            value={formData.email}
+            onChange={handleChange}
+            error={!!errors.email}
+            helperText={errors.email}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="password"
+            label="Password"
+            type="password"
+            id="password"
+            autoComplete="current-password"
+            value={formData.password}
+            onChange={handleChange}
+            error={!!errors.password}
+            helperText={errors.password}
+          />
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, mb: 2, py: 1.5 }}
+          >
+            Sign In
+          </Button>
+        </Box>
+      </Paper>
+    </Container>
+  );
+};
+
+export default Login;
+
+// src/components/TopBar.js
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import AppBar from '@mui/material/AppBar';
+import Box from '@mui/material/Box';
+import Toolbar from '@mui/material/Toolbar';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Button from '@mui/material/Button';
+import MenuIcon from '@mui/icons-material/Menu';
+import AccountCircle from '@mui/icons-material/AccountCircle';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import NaturePeopleIcon from '@mui/icons-material/NaturePeople';
+import { logout } from '../services/auth';
+import MainMenu from './MainMenu';
+
+const TopBar = () => {
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reportMenuAnchor, setReportMenuAnchor] = useState(null);
+  const [userMenuAnchor, setUserMenuAnchor] = useState(null);
+  
+  const handleMenuToggle = () => {
+    setMenuOpen(!menuOpen);
+  };
+
+  const handleReportMenuOpen = (event) => {
+    setReportMenuAnchor(event.currentTarget);
+  };
+
+  const handleReportMenuClose = () => {
+    setReportMenuAnchor(null);
+  };
+
+  const handleUserMenuOpen = (event) => {
+    setUserMenuAnchor(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchor(null);
+  };
+
+  const handleReportNavigate = (path) => {
+    navigate(`/reports/${path}`);
+    handleReportMenuClose();
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  return (
+    <>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleMenuToggle}
+            sx={{ mr: 2 }}
+          >
+            <MenuIcon />
+          </IconButton>
+          
+          <NaturePeopleIcon sx={{ mr: 1 }} />
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Green App
+          </Typography>
+          
+          {/* Navigation buttons with dropdown for Reports */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+            <Button color="inherit" onClick={() => navigate('/')}>
+              Dashboard
+            </Button>
+            
+            <Button 
+              color="inherit" 
+              endIcon={<ExpandMoreIcon />}
+              onClick={handleReportMenuOpen}
+              aria-controls="report-menu"
+              aria-haspopup="true"
+            >
+              Reports
+            </Button>
+            <Menu
+              id="report-menu"
+              anchorEl={reportMenuAnchor}
+              keepMounted
+              open={Boolean(reportMenuAnchor)}
+              onClose={handleReportMenuClose}
+            >
+              <MenuItem onClick={() => handleReportNavigate('daily')}>Daily Reports</MenuItem>
+              <MenuItem onClick={() => handleReportNavigate('weekly')}>Weekly Reports</MenuItem>
+              <MenuItem onClick={() => handleReportNavigate('monthly')}>Monthly Reports</MenuItem>
+            </Menu>
+            
+            <Button color="inherit" onClick={() => navigate('/settings')}>
+              Settings
+            </Button>
+          </Box>
+          
+          {/* User menu */}
+          <IconButton
+            size="large"
+            edge="end"
+            aria-label="account of current user"
+            aria-controls="user-menu"
+            aria-haspopup="true"
+            onClick={handleUserMenuOpen}
+            color="inherit"
+          >
+            <AccountCircle />
+          </IconButton>
+          <Menu
+            id="user-menu"
+            anchorEl={userMenuAnchor}
+            keepMounted
+            open={Boolean(userMenuAnchor)}
+            onClose={handleUserMenuClose}
+          >
+            <MenuItem onClick={() => {
+              handleUserMenuClose();
+              navigate('/settings');
+            }}>
+              Profile
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+      
+      {/* Sidebar Menu */}
+      <MainMenu open={menuOpen} onClose={handleMenuToggle} />
+    </>
+  );
+};
+
+export default TopBar;
+
+// src/components/MainMenu.js
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import Divider from '@mui/material/Divider';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Collapse from '@mui/material/Collapse';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import SettingsIcon from '@mui/icons-material/Settings';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import TodayIcon from '@mui/icons-material/Today';
+import ViewWeekIcon from '@mui/icons-material/ViewWeek';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+
+const MainMenu = ({ open, onClose }) => {
+  const navigate = useNavigate();
+  const [reportsOpen, setReportsOpen] = React.useState(false);
+
+  const handleReportsClick = () => {
+    setReportsOpen(!reportsOpen);
+  };
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    onClose();
+  };
+
+  return (
+    <Drawer
+      anchor="left"
+      open={open}
+      onClose={onClose}
+    >
+      <Box
+        sx={{ width: 250 }}
+        role="presentation"
+      >
+        <List>
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => handleNavigation('/')}>
+              <ListItemIcon>
+                <DashboardIcon />
+              </ListItemIcon>
+              <ListItemText primary="Dashboard" />
+            </ListItemButton>
+          </ListItem>
+          
+          <ListItem disablePadding>
+            <ListItemButton onClick={handleReportsClick}>
+              <ListItemIcon>
+                <AssessmentIcon />
+              </ListItemIcon>
+              <ListItemText primary="Reports" />
+              {reportsOpen ? <ExpandLess /> : <ExpandMore />}
+            </ListItemButton>
+          </ListItem>
+          
+          <Collapse in={reportsOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigation('/reports/daily')}>
+                <ListItemIcon>
+                  <TodayIcon />
+                </ListItemIcon>
+                <ListItemText primary="Daily Reports" />
+              </ListItemButton>
+              
+              <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigation('/reports/weekly')}>
+                <ListItemIcon>
+                  <ViewWeekIcon />
+                </ListItemIcon>
+                <ListItemText primary="Weekly Reports" />
+              </ListItemButton>
+              
+              <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigation('/reports/monthly')}>
+                <ListItemIcon>
+                  <CalendarMonthIcon />
+                </ListItemIcon>
+                <ListItemText primary="Monthly Reports" />
+              </ListItemButton>
+            </List>
+          </Collapse>
+        </List>
+        
+        <Divider />
+        
+        <List>
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => handleNavigation('/settings')}>
+              <ListItemIcon>
+                <SettingsIcon />
+              </ListItemIcon>
+              <ListItemText primary="Settings" />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Box>
+    </Drawer>
+  );
+};
+
+export default MainMenu;
+
+// src/pages/Dashboard.js
+import React from 'react';
+import { Typography, Box, Paper, Grid, Card, CardContent } from '@mui/material';
+
+const Dashboard = () => {
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" sx={{ mb: 3 }}>
+        Dashboard
+      </Typography>
+      
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Summary
+              </Typography>
+              <Typography variant="body2">
+                Welcome to the Green App Dashboard. This is your central hub for monitoring and managing your environmental data.
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Recent Activity
+              </Typography>
+              <Typography variant="body2">
+                No recent activities to display.
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Notifications
+              </Typography>
+              <Typography variant="body2">
+                No new notifications.
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+};
+
+export default Dashboard;
+
+// src/pages/Reports.js
+import React from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Typography, Box, Paper, Tabs, Tab } from '@mui/material';
+
+const ReportContent = ({ title }) => (
+  <Box sx={{ p: 3 }}>
+    <Typography variant="h5" gutterBottom>
+      {title}
+    </Typography>
+    <Paper elevation={2} sx={{ p: 2 }}>
+      <Typography variant="body1">
+        {title} content will be displayed here.
+      </Typography>
+    </Paper>
+  </Box>
+);
+
+const Reports = () => {
+  const navigate = useNavigate();
+  const path = window.location.pathname;
+  
+  const getTabValue = () => {
+    if (path.includes('/daily')) return 0;
+    if (path.includes('/weekly')) return 1;
+    if (path.includes('/monthly')) return 2;
+    return 0;
+  };
+  
+  const handleTabChange = (event, newValue) => {
+    switch (newValue) {
+      case 0:
+        navigate('/reports/daily');
+        break;
+      case 1: 
+        navigate('/reports/weekly');
+        break;
+      case 2:
+        navigate('/reports/monthly');
+        break;
+      default:
+        navigate('/reports/daily');
+    }
+  };
+  
+  return (
+    <Box sx={{ width: '100%' }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs 
+          value={getTabValue()} 
+          onChange={handleTabChange}
+          indicatorColor="primary"
+          textColor="primary"
+        >
+          <Tab label="Daily Reports" />
+          <Tab label="Weekly Reports" />
+          <Tab label="Monthly Reports" />
+        </Tabs>
+      </Box>
+      
+      <Routes>
+        <Route path="/" element={<ReportContent title="Daily Reports" />} />
+        <Route path="/daily" element={<ReportContent title="Daily Reports" />} />
+        <Route path="/weekly" element={<ReportContent title="Weekly Reports" />} />
+        <Route path="/monthly" element={<ReportContent title="Monthly Reports" />} />
+      </Routes>
+    </Box>
+  );
+};
+
+export default Reports;
+
+// src/pages/Settings.js
+import React, { useState } from 'react';
+import { 
+  Typography, 
+  Box, 
+  Paper, 
+  TextField, 
+  Button, 
+  Divider,
+  Grid,
+  Switch,
+  FormControlLabel
+} from '@mui/material';
+
+const Settings = () => {
+  const [profile, setProfile] = useState({
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    notifications: true
+  });
+  
+  const [password, setPassword] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  });
+  
+  const handleProfileChange = (e) => {
+    const { name, value, checked } = e.target;
+    setProfile({
+      ...profile,
+      [name]: name === 'notifications' ? checked : value
+    });
+  };
+  
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPassword({
+      ...password,
+      [name]: value
+    });
+  };
+  
+  const handleProfileSubmit = (e) => {
+    e.preventDefault();
+    // Save profile changes - would connect to API
+    console.log('Profile saved:', profile);
+  };
+  
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    // Save password changes - would connect to API
+    console.log('Password change requested');
+  };
+  
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        Settings
+      </Typography>
+      
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Profile Settings
+            </Typography>
+            
+            <Box component="form" onSubmit={handleProfileSubmit} sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                label="Name"
+                name="name"
+                value={profile.name}
+                onChange={handleProfileChange}
+                margin="normal"
+              />
+              
+              <TextField
+                fullWidth
+                label="Email"
+                name="email"
+                type="email"
+                value={profile.email}
+                onChange={handleProfileChange}
+                margin="normal"
+              />
+              
+              <FormControlLabel 
+                control={
+                  <Switch 
+                    checked={profile.notifications} 
+                    onChange={handleProfileChange}
+                    name="notifications"
+                    color="primary"
+                  />
+                } 
+                label="Enable Notifications" 
+                sx={{ mt: 2 }}
+              />
+              
+              <Button 
+                type="submit" 
+                variant="contained" 
+                color="primary"
+                sx={{ mt: 3 }}
+              >
+                Save Changes
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Change Password
+            </Typography>
+            
+            <Box component="form" onSubmit={handlePasswordSubmit} sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                label="Current Password"
+                name="current"
+                type="password"
+                value={password.current}
+                onChange={handlePasswordChange}
+                margin="normal"
+              />
+              
+              <TextField
+                fullWidth
+                label="New Password"
+                name="new"
+                type="password"
+                value={password.new}
+                onChange={handlePasswordChange}
+                margin="normal"
+              />
+              
+              <TextField
+                fullWidth
+                label="Confirm New Password"
+                name="confirm"
+                type="password"
+                value={password.confirm}
+                onChange={handlePasswordChange}
+                margin="normal"
+              />
+              
+              <Button 
+                type="submit" 
+                variant="contained" 
+                color="primary"
+                sx={{ mt: 3 }}
+              >
+                Update Password
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+};
+
+export default Settings;
+
+// src/services/auth.js
+import axios from 'axios';
+
+// Base URL for the API
+const API_URL = 'http://localhost:3001/api';
+
+// Set token in localStorage
+export const setToken = (token) => {
+  localStorage.setItem('token', token);
+};
+
+// Get token from localStorage
+export const getToken = () => {
+  return localStorage.getItem('token');
+};
+
+// Remove token from localStorage
+export const removeToken = () => {
+  localStorage.removeItem('token');
+};
+
+// Login user
+export const login = async (email, password) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+    const { token } = response.data;
+    
+    setToken(token);
+    
+    // Set default Authorization header for all requests
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Logout user
+export const logout = () => {
+  removeToken();
+  delete axios.defaults.headers.common['Authorization'];
+};
+
+// Register user
+export const register = async (userData) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/register`, userData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Check if token is valid
+export const validateToken = async () => {
+  const token = getToken();
+  
+  if (!token) {
+    return false;
+  }
+  
+  try {
+    const response = await axios.get(`${API_URL}/auth/validate`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    
+    return response.data.valid;
+  } catch (error) {
+    removeToken();
+    return false;
+  }
+};
+
+// src/services/api.js
+import axios from 'axios';
+import { getToken } from './auth';
+
+const API_URL = 'http://localhost:3001/api';
+
+// Create axios instance with auth header
+const api = axios.create({
+  baseURL: API_URL,
+});
+
+// Add auth token to every request
+api.interceptors.request.use(
+  (config) => {
+    const token = getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Handle response errors
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Handle 401 errors (unauthorized)
+    if (error.response && error.response.status === 401) {
+      // Redirect to login page or refresh token logic would go here
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
