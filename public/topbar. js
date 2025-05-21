@@ -1,0 +1,381 @@
+// client/src/components/layout/Topbar.js
+import React, { useState } from 'react';
+import {
+  AppBar,
+  Box,
+  Toolbar,
+  IconButton,
+  Typography,
+  Menu,
+  MenuItem,
+  Button,
+  Avatar,
+  Container,
+  Tooltip,
+  Divider,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
+  List,
+  ListItem,
+} from '@mui/material';
+import {
+  Menu as MenuIcon,
+  AccountCircle,
+  Dashboard,
+  Settings,
+  ExpandMore,
+  ExpandLess,
+  Group,
+  Logout,
+  Assessment,
+  Business,
+  AdminPanelSettings,
+  Inventory,
+  FormatListBulleted,
+  ReceiptLong,
+  LocalShipping,
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { logout } from '../../services/authService';
+
+// Define menu structure with nested items
+const menuItems = [
+  {
+    title: 'Dashboard',
+    path: '/dashboard',
+    icon: <Dashboard fontSize="small" />,
+  },
+  {
+    title: 'Inventory',
+    icon: <Inventory fontSize="small" />,
+    children: [
+      { title: 'Products', path: '/products', icon: <FormatListBulleted fontSize="small" /> },
+      { title: 'Categories', path: '/categories', icon: <FormatListBulleted fontSize="small" /> },
+      { title: 'Suppliers', path: '/suppliers', icon: <LocalShipping fontSize="small" /> },
+    ],
+  },
+  {
+    title: 'Reports',
+    icon: <Assessment fontSize="small" />,
+    children: [
+      { title: 'Sales Report', path: '/reports/sales', icon: <ReceiptLong fontSize="small" /> },
+      { title: 'Inventory Report', path: '/reports/inventory', icon: <Inventory fontSize="small" /> },
+    ],
+  },
+  {
+    title: 'Administration',
+    icon: <AdminPanelSettings fontSize="small" />,
+    children: [
+      { title: 'Users', path: '/admin/users', icon: <Group fontSize="small" /> },
+      { title: 'Settings', path: '/admin/settings', icon: <Settings fontSize="small" /> },
+      { title: 'Company', path: '/admin/company', icon: <Business fontSize="small" /> },
+    ],
+  },
+];
+
+const Topbar = () => {
+  const navigate = useNavigate();
+  const [anchorElNav, setAnchorElNav] = useState(null);
+  const [anchorElUser, setAnchorElUser] = useState(null);
+  const [activeMenu, setActiveMenu] = useState(null);
+  const [openMenus, setOpenMenus] = useState({});
+
+  // Get user from localStorage
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userInitials = user?.name ? `${user.name.charAt(0)}${user.name.split(' ')[1]?.charAt(0) || ''}` : 'U';
+
+  const handleOpenNavMenu = (event) => {
+    setAnchorElNav(event.currentTarget);
+  };
+
+  const handleOpenUserMenu = (event) => {
+    setAnchorElUser(event.currentTarget);
+  };
+
+  const handleCloseNavMenu = () => {
+    setAnchorElNav(null);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
+
+  const handleMenuClick = (index) => {
+    setOpenMenus({
+      ...openMenus,
+      [index]: !openMenus[index],
+    });
+  };
+
+  const handleMenuItemClick = (path) => {
+    navigate(path);
+    handleCloseNavMenu();
+  };
+
+  const handleLogout = () => {
+    logout();
+    handleCloseUserMenu();
+  };
+
+  // Render submenu items
+  const renderSubMenu = (items, parentIndex) => {
+    return (
+      <Collapse in={openMenus[parentIndex]} timeout="auto" unmountOnExit>
+        <List component="div" disablePadding>
+          {items.map((item, index) => (
+            <ListItem
+              key={`submenu-${parentIndex}-${index}`}
+              button
+              onClick={() => handleMenuItemClick(item.path)}
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon sx={{ minWidth: 36 }}>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.title} />
+            </ListItem>
+          ))}
+        </List>
+      </Collapse>
+    );
+  };
+
+  return (
+    <AppBar position="static" color="primary">
+      <Container maxWidth="xl">
+        <Toolbar disableGutters>
+          {/* Logo and Title - Desktop */}
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{
+              mr: 2,
+              display: { xs: 'none', md: 'flex' },
+              fontWeight: 700,
+              color: 'inherit',
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
+            onClick={() => navigate('/dashboard')}
+          >
+            GREEN APP
+          </Typography>
+
+          {/* Mobile menu */}
+          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+            <IconButton
+              size="large"
+              aria-label="menu"
+              aria-controls="menu-appbar"
+              aria-haspopup="true"
+              onClick={handleOpenNavMenu}
+              color="inherit"
+            >
+              <MenuIcon />
+            </IconButton>
+            <Menu
+              id="menu-appbar"
+              anchorEl={anchorElNav}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'left',
+              }}
+              open={Boolean(anchorElNav)}
+              onClose={handleCloseNavMenu}
+              sx={{
+                display: { xs: 'block', md: 'none' },
+              }}
+              PaperProps={{
+                elevation: 3,
+                sx: { width: 250 },
+              }}
+            >
+              {menuItems.map((item, index) => (
+                <React.Fragment key={`menu-mobile-${index}`}>
+                  {item.children ? (
+                    <>
+                      <MenuItem onClick={() => handleMenuClick(index)}>
+                        <ListItemIcon>{item.icon}</ListItemIcon>
+                        <ListItemText primary={item.title} />
+                        {openMenus[index] ? <ExpandLess /> : <ExpandMore />}
+                      </MenuItem>
+                      {renderSubMenu(item.children, index)}
+                    </>
+                  ) : (
+                    <MenuItem onClick={() => handleMenuItemClick(item.path)}>
+                      <ListItemIcon>{item.icon}</ListItemIcon>
+                      <ListItemText primary={item.title} />
+                    </MenuItem>
+                  )}
+                </React.Fragment>
+              ))}
+            </Menu>
+          </Box>
+
+          {/* Logo and Title - Mobile */}
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{
+              flexGrow: 1,
+              display: { xs: 'flex', md: 'none' },
+              fontWeight: 700,
+            }}
+          >
+            GREEN APP
+          </Typography>
+
+          {/* Desktop menu */}
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+            {menuItems.map((item, index) => (
+              <React.Fragment key={`menu-desktop-${index}`}>
+                {item.children ? (
+                  <Box 
+                    sx={{ position: 'relative' }}
+                    onMouseEnter={() => setActiveMenu(index)} 
+                    onMouseLeave={() => setActiveMenu(null)}
+                  >
+                    <Button
+                      startIcon={item.icon}
+                      endIcon={activeMenu === index ? <ExpandLess /> : <ExpandMore />}
+                      onClick={() => handleMenuClick(index)}
+                      sx={{
+                        my: 2,
+                        color: 'white',
+                        display: 'flex',
+                        '&:hover': { backgroundColor: 'primary.dark' },
+                      }}
+                    >
+                      {item.title}
+                    </Button>
+                    
+                    {/* Desktop dropdown */}
+                    {activeMenu === index && (
+                      <Menu
+                        anchorEl={document.getElementById(`menu-button-${index}`)}
+                        open={activeMenu === index}
+                        onClose={() => setActiveMenu(null)}
+                        sx={{ mt: '45px' }}
+                        anchorOrigin={{
+                          vertical: 'top',
+                          horizontal: 'left',
+                        }}
+                        transformOrigin={{
+                          vertical: 'top',
+                          horizontal: 'left',
+                        }}
+                        MenuListProps={{
+                          'aria-labelledby': `menu-button-${index}`,
+                          onMouseLeave: () => setActiveMenu(null),
+                        }}
+                        PaperProps={{
+                          elevation: 3,
+                          sx: { minWidth: 180 },
+                        }}
+                        disablePortal
+                      >
+                        {item.children.map((subItem, subIndex) => (
+                          <MenuItem 
+                            key={`submenu-desktop-${index}-${subIndex}`}
+                            onClick={() => handleMenuItemClick(subItem.path)}
+                          >
+                            <ListItemIcon>{subItem.icon}</ListItemIcon>
+                            <ListItemText primary={subItem.title} />
+                          </MenuItem>
+                        ))}
+                      </Menu>
+                    )}
+                    <Button
+                      id={`menu-button-${index}`}
+                      sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0 }}
+                    />
+                  </Box>
+                ) : (
+                  <Button
+                    key={`menu-button-${index}`}
+                    startIcon={item.icon}
+                    onClick={() => handleMenuItemClick(item.path)}
+                    sx={{
+                      my: 2,
+                      color: 'white',
+                      display: 'flex',
+                      '&:hover': { backgroundColor: 'primary.dark' },
+                    }}
+                  >
+                    {item.title}
+                  </Button>
+                )}
+              </React.Fragment>
+            ))}
+          </Box>
+
+          {/* User menu */}
+          <Box sx={{ flexGrow: 0 }}>
+            <Tooltip title="Account settings">
+              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                <Avatar sx={{ bgcolor: 'secondary.main' }}>{userInitials}</Avatar>
+              </IconButton>
+            </Tooltip>
+            <Menu
+              sx={{ mt: '45px' }}
+              id="menu-appbar-user"
+              anchorEl={anchorElUser}
+              anchorOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              open={Boolean(anchorElUser)}
+              onClose={handleCloseUserMenu}
+              PaperProps={{
+                elevation: 3,
+                sx: { minWidth: 180 },
+              }}
+            >
+              <MenuItem onClick={() => {
+                navigate('/profile');
+                handleCloseUserMenu();
+              }}>
+                <ListItemIcon>
+                  <AccountCircle fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Profile" />
+              </MenuItem>
+              
+              <MenuItem onClick={() => {
+                navigate('/settings');
+                handleCloseUserMenu();
+              }}>
+                <ListItemIcon>
+                  <Settings fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Settings" />
+              </MenuItem>
+              
+              <Divider />
+              
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <Logout fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Logout" />
+              </MenuItem>
+            </Menu>
+          </Box>
+        </Toolbar>
+      </Container>
+    </AppBar>
+  );
+};
+
+export default Topbar;
