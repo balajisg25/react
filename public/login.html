@@ -1,0 +1,98 @@
+import React, { useState } from "react"; import { ThemeProvider, createTheme } from "@mui/material/styles"; import { CssBaseline, TextField, Button, AppBar, Toolbar, Typography, Menu, MenuItem, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material"; import MenuIcon from "@mui/icons-material/Menu";
+
+const theme = createTheme({ palette: { primary: { main: "#388e3c", }, background: { default: "#e8f5e9", }, }, });
+
+const App = () => { const [isLoggedIn, setIsLoggedIn] = useState(false); const [anchorEl, setAnchorEl] = useState(null); const [username, setUsername] = useState(""); const [password, setPassword] = useState(""); const [forgotDialogOpen, setForgotDialogOpen] = useState(false); const [email, setEmail] = useState("");
+
+const handleLogin = async () => { try { const response = await fetch("http://localhost:5000/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }), });
+
+const data = await response.json();
+  if (response.ok) {
+    setIsLoggedIn(true);
+  } else {
+    alert(data.message);
+  }
+} catch (error) {
+  alert("Server error");
+}
+
+};
+
+const handleForgotPassword = async () => { try { const response = await fetch("http://localhost:5000/forgot-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }), });
+
+const data = await response.json();
+  alert(data.message);
+  setForgotDialogOpen(false);
+} catch (error) {
+  alert("Server error");
+}
+
+};
+
+const handleMenuClick = (event) => { setAnchorEl(event.currentTarget); };
+
+const handleMenuClose = () => { setAnchorEl(null); };
+
+return ( <ThemeProvider theme={theme}> <CssBaseline /> {!isLoggedIn ? ( <Box
+display="flex"
+flexDirection="column"
+justifyContent="center"
+alignItems="center"
+minHeight="100vh"
+> <Typography variant="h4" gutterBottom> Login </Typography> <TextField label="Username" variant="outlined" value={username} onChange={(e) => setUsername(e.target.value)} margin="normal" /> <TextField label="Password" type="password" variant="outlined" value={password} onChange={(e) => setPassword(e.target.value)} margin="normal" /> <Button variant="contained" color="primary" onClick={handleLogin}> Login </Button> <Button color="primary" onClick={() => setForgotDialogOpen(true)}> Forgot Password? </Button>
+
+<Dialog open={forgotDialogOpen} onClose={() => setForgotDialogOpen(false)}>
+        <DialogTitle>Reset Password</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Email"
+            type="email"
+            fullWidth
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            margin="normal"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setForgotDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleForgotPassword} color="primary">Send</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  ) : (
+    <>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="menu"
+            onClick={handleMenuClick}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Dashboard
+          </Typography>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+          >
+            <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
+            <MenuItem onClick={handleMenuClose}>Settings</MenuItem>
+            <MenuItem onClick={() => setIsLoggedIn(false)}>Logout</MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+      <Box p={3}>
+        <Typography variant="h5">Welcome, {username}!</Typography>
+      </Box>
+    </>
+  )}
+</ThemeProvider>
+
+); };
+
+export default App;
+
