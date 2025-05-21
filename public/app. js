@@ -1,0 +1,88 @@
+// client/src/App.js
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import greenTheme from './themes/greenTheme';
+import Topbar from './components/layout/Topbar';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import { isAuthenticated } from './services/authService';
+
+// Protected route component
+const ProtectedRoute = ({ children }) => {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+// Auth layout - no Topbar
+const AuthLayout = ({ children }) => {
+  return (
+    <>
+      <CssBaseline />
+      {children}
+    </>
+  );
+};
+
+// Main layout with Topbar
+const MainLayout = ({ children }) => {
+  return (
+    <>
+      <CssBaseline />
+      <Topbar />
+      {children}
+    </>
+  );
+};
+
+// Placeholder Dashboard component
+const DashboardPlaceholder = () => (
+  <div style={{ padding: '20px' }}>
+    <h1>Dashboard</h1>
+    <p>Welcome to the dashboard. This is a protected route.</p>
+  </div>
+);
+
+function App() {
+  return (
+    <ThemeProvider theme={greenTheme}>
+      <Router>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={
+            <AuthLayout>
+              <Login />
+            </AuthLayout>
+          } />
+          
+          {/* Protected routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Dashboard />
+              </MainLayout>
+            </ProtectedRoute>
+          } />
+          
+          {/* Redirect to dashboard if logged in, otherwise to login */}
+          <Route path="/" element={
+            isAuthenticated() ? 
+              <Navigate to="/dashboard" replace /> : 
+              <Navigate to="/login" replace />
+          } />
+          
+          {/* Catch all - redirect to login or dashboard */}
+          <Route path="*" element={
+            isAuthenticated() ? 
+              <Navigate to="/dashboard" replace /> : 
+              <Navigate to="/login" replace />
+          } />
+        </Routes>
+      </Router>
+    </ThemeProvider>
+  );
+}
+
+export default App;
